@@ -525,14 +525,18 @@ func TestRunWithCustomCSS(t *testing.T) {
 	defer func() { _ = zr.Close() }()
 	found := false
 	for _, f := range zr.File {
-		if strings.HasSuffix(f.Name, ".css") {
-			rc, _ := f.Open()
-			buf := new(strings.Builder)
-			_, _ = io.Copy(buf, rc)
-			_ = rc.Close()
-			if strings.Contains(buf.String(), "#123456") {
-				found = true
-			}
+		if !strings.HasSuffix(f.Name, ".css") {
+			continue
+		}
+		rc, err := f.Open()
+		if err != nil {
+			t.Fatal(err)
+		}
+		buf := new(strings.Builder)
+		_, _ = io.Copy(buf, rc)
+		_ = rc.Close()
+		if strings.Contains(buf.String(), "#123456") {
+			found = true
 		}
 	}
 	if !found {

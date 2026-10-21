@@ -37,10 +37,15 @@ func (f *flexInt) UnmarshalJSON(data []byte) error {
 // Int returns the value as int.
 func (f flexInt) Int() int { return int(f) }
 
-// extractAssignedJSON finds `<marker> = {json}` in script text and returns the
-// raw JSON value. Decoding with json.Decoder (instead of searching for "};")
-// copes with braces inside strings.
-func extractAssignedJSON(html []byte, marker string) (json.RawMessage, error) {
+// initialStateMarker is the variable the server-rendered pages assign their
+// state to.
+const initialStateMarker = "window.__INITIAL_STATE__"
+
+// extractInitialState finds `window.__INITIAL_STATE__ = {json}` in the script
+// text of a page and returns the raw JSON value. Decoding with json.Decoder
+// (instead of searching for "};") copes with braces inside strings.
+func extractInitialState(html []byte) (json.RawMessage, error) {
+	const marker = initialStateMarker
 	pos := bytes.Index(html, []byte(marker))
 	if pos < 0 {
 		return nil, fmt.Errorf("weread: %s not found in page", marker)

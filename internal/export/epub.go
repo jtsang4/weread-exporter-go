@@ -276,7 +276,7 @@ func inventoryImages(store *book.Store) (map[string]*epubImage, error) {
 		img := &epubImage{cacheName: name, zipName: name, mime: book.MIMEForFile(name, head)}
 		if kind, ok := book.SniffImage(head); ok {
 			ext := strings.TrimPrefix(strings.ToLower(path.Ext(name)), ".")
-			if ext != kind.Ext && !(ext == "jpeg" && kind.Ext == "jpg") {
+			if ext != kind.Ext && (ext != "jpeg" || kind.Ext != "jpg") {
 				img.zipName = strings.TrimSuffix(name, path.Ext(name)) + "." + kind.Ext
 			}
 		}
@@ -285,8 +285,8 @@ func inventoryImages(store *book.Store) (map[string]*epubImage, error) {
 	return images, nil
 }
 
-func readHead(path string, n int) ([]byte, error) {
-	f, err := os.Open(path)
+func readHead(name string, n int) ([]byte, error) {
+	f, err := os.Open(name)
 	if err != nil {
 		return nil, err
 	}
@@ -381,7 +381,7 @@ func ncxDocument(title, identifier string, toc []*tocEntry) string {
 	b.WriteString(xmlHeader)
 	b.WriteString(`<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1" xml:lang="` + epubLang + `">` + "\n<head>\n")
 	b.WriteString(`<meta name="dtb:uid" content="` + escapeAttr(identifier) + `"/>` + "\n")
-	b.WriteString(fmt.Sprintf(`<meta name="dtb:depth" content="%d"/>`+"\n", max(tocDepth(toc), 1)))
+	fmt.Fprintf(&b, `<meta name="dtb:depth" content="%d"/>`+"\n", max(tocDepth(toc), 1))
 	b.WriteString(`<meta name="dtb:totalPageCount" content="0"/>` + "\n")
 	b.WriteString(`<meta name="dtb:maxPageNumber" content="0"/>` + "\n</head>\n")
 	b.WriteString("<docTitle><text>" + escapeText(title) + "</text></docTitle>\n<navMap>\n")
@@ -391,7 +391,7 @@ func ncxDocument(title, identifier string, toc []*tocEntry) string {
 		indent := strings.Repeat("  ", depth)
 		for _, e := range entries {
 			order++
-			b.WriteString(fmt.Sprintf(`%s<navPoint id="navpoint-%d" playOrder="%d">`+"\n", indent, order, order))
+			fmt.Fprintf(&b, `%s<navPoint id="navpoint-%d" playOrder="%d">`+"\n", indent, order, order)
 			b.WriteString(indent + "  <navLabel><text>" + escapeText(e.Title) + "</text></navLabel>\n")
 			b.WriteString(indent + `  <content src="` + escapeAttr(e.Href) + `"/>` + "\n")
 			walk(e.Children, depth+1)
@@ -438,10 +438,10 @@ func packageDocument(src Source, identifier string, now time.Time, chapters []ep
 		if ch.remote {
 			props = ` properties="remote-resources"`
 		}
-		b.WriteString(fmt.Sprintf(`    <item id="chap%04d" href="%s" media-type="application/xhtml+xml"%s/>`+"\n", i+1, escapeAttr(ch.file), props))
+		fmt.Fprintf(&b, `    <item id="chap%04d" href="%s" media-type="application/xhtml+xml"%s/>`+"\n", i+1, escapeAttr(ch.file), props)
 	}
 	for i, img := range images {
-		b.WriteString(fmt.Sprintf(`    <item id="img%04d" href="images/%s" media-type="%s"/>`+"\n", i+1, escapeAttr(img.zipName), img.mime))
+		fmt.Fprintf(&b, `    <item id="img%04d" href="images/%s" media-type="%s"/>`+"\n", i+1, escapeAttr(img.zipName), img.mime)
 	}
 	b.WriteString("  </manifest>\n  <spine toc=\"ncx\">\n")
 	if cover != nil {
@@ -449,7 +449,7 @@ func packageDocument(src Source, identifier string, now time.Time, chapters []ep
 	}
 	b.WriteString(`    <itemref idref="nav"/>` + "\n")
 	for i := range chapters {
-		b.WriteString(fmt.Sprintf(`    <itemref idref="chap%04d"/>`+"\n", i+1))
+		fmt.Fprintf(&b, `    <itemref idref="chap%04d"/>`+"\n", i+1)
 	}
 	b.WriteString("  </spine>\n")
 	if cover != nil {

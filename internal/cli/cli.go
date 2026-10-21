@@ -119,7 +119,7 @@ func (e *env) exporter(c *commonFlags, cfg app.Config) (*app.Exporter, *slog.Log
 	if err != nil {
 		return nil, nil, err
 	}
-	exp, err := app.New(cfg, log, app.WithOutput(e.streams.Out), app.WithInput(e.streams.In))
+	exp, err := app.New(cfg, log, app.WithInput(e.streams.In))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -165,9 +165,9 @@ accounts that read too fast, and the exported books are for your own use.`,
   # several formats at once, from a book URL
   weread-exporter -b https://weread.qq.com/web/bookDetail/3300040626 -o epub -o pdf -o md
 
-  # only the free preview chapters, then look at the table of contents
+  # look at the table of contents, then export only some of the chapters
   weread-exporter info -b 34336681
-  weread-exporter -b 34336681 --chapters 41-51`,
+  weread-exporter -b 34336681 --chapters 1-5`,
 		Version:       info.Short(),
 		Args:          noArgs,
 		SilenceUsage:  true,

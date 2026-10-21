@@ -40,7 +40,7 @@ func (c *Client) BookDetail(ctx context.Context, bookID string) (*BookDetail, er
 // ParseBookDetail extracts the book metadata from the page's
 // window.__INITIAL_STATE__ script.
 func ParseBookDetail(html []byte) (*BookDetail, error) {
-	raw, err := extractAssignedJSON(html, "window.__INITIAL_STATE__")
+	raw, err := extractInitialState(html)
 	if err != nil {
 		return nil, err
 	}

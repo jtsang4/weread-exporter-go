@@ -1,6 +1,7 @@
 package browser
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"testing"
@@ -83,7 +84,7 @@ func TestChromeFlagsDefaultProfileKeepsWindowAlone(t *testing.T) {
 
 func TestCheckDisplay(t *testing.T) {
 	env := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
-	if err := checkDisplay("linux", env(nil)); err != ErrNoDisplay {
+	if err := checkDisplay("linux", env(nil)); !errors.Is(err, ErrNoDisplay) {
 		t.Errorf("linux without display: %v", err)
 	}
 	for _, e := range []map[string]string{{"DISPLAY": ":0"}, {"WAYLAND_DISPLAY": "wayland-0"}} {

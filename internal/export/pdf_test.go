@@ -59,7 +59,7 @@ func TestPDFHTMLNeutralisesActiveContent(t *testing.T) {
 	if n := strings.Count(doc, "</style>"); n != 1 {
 		t.Fatalf("%d closing style tags: user CSS broke out of the element", n)
 	}
-	page := doc[strings.Index(doc, "</style>"):]
+	page := doc[strings.Index(doc, "</style>")+len("</style>"):]
 	notContains(t, page, "<script", "onerror", "<iframe", "alert(", "/etc/passwd")
 }
 

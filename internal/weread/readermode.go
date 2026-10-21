@@ -46,7 +46,7 @@ func (c *Client) ReaderMode(ctx context.Context, cookies *Cookies, bookID string
 // ParseReaderMode reads config.useHorizonReader from the server-rendered
 // window.__INITIAL_STATE__ of a reader page.
 func ParseReaderMode(html []byte) (ReaderMode, error) {
-	raw, err := extractAssignedJSON(html, "window.__INITIAL_STATE__")
+	raw, err := extractInitialState(html)
 	if err != nil {
 		return 0, err
 	}

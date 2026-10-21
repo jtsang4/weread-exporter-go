@@ -150,18 +150,18 @@ func TestFlexInt(t *testing.T) {
 	}
 }
 
-func TestExtractAssignedJSONStopsAtValueEnd(t *testing.T) {
-	raw, err := extractAssignedJSON([]byte(`x window.__INITIAL_STATE__ =  {"a":"};","b":[1]};window.other={"z":1}`), "window.__INITIAL_STATE__")
+func TestExtractInitialStateStopsAtValueEnd(t *testing.T) {
+	raw, err := extractInitialState([]byte(`x window.__INITIAL_STATE__ =  {"a":"};","b":[1]};window.other={"z":1}`))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(raw) != `{"a":"};","b":[1]}` {
 		t.Fatalf("raw = %s", raw)
 	}
-	if _, err := extractAssignedJSON([]byte("nothing"), "window.__INITIAL_STATE__"); err == nil {
+	if _, err := extractInitialState([]byte("nothing")); err == nil {
 		t.Fatal("missing marker must fail")
 	}
-	if _, err := extractAssignedJSON([]byte("window.__INITIAL_STATE__"), "window.__INITIAL_STATE__"); err == nil {
+	if _, err := extractInitialState([]byte("window.__INITIAL_STATE__")); err == nil {
 		t.Fatal("missing assignment must fail")
 	}
 }

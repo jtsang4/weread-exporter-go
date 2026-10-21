@@ -521,7 +521,7 @@ func (s *Site) bookDetail(w http.ResponseWriter, r *http.Request) {
 		for i, ch := range b.Chapters {
 			anchors := make([]stateAnchor, len(ch.Anchors))
 			for j, a := range ch.Anchors {
-				anchors[j] = stateAnchor{Title: a.Title, Level: a.Level}
+				anchors[j] = stateAnchor(a)
 			}
 			infos[i] = stateChapter{ChapterUID: ch.UID, Title: ch.Title, Level: ch.Level, WordCount: ch.Words, Anchors: anchors}
 		}

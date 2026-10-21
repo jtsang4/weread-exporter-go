@@ -88,7 +88,11 @@ func NewClient(opts Options) (*Client, error) {
 	if timeout <= 0 {
 		timeout = 60 * time.Second
 	}
-	transport := http.DefaultTransport.(*http.Transport).Clone()
+	base, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return nil, errors.New("weread: http.DefaultTransport is not an *http.Transport")
+	}
+	transport := base.Clone()
 	if opts.ProxyURL != "" {
 		proxy, err := url.Parse(opts.ProxyURL)
 		if err != nil || proxy.Host == "" {
@@ -199,14 +203,14 @@ func (c *Client) once(ctx context.Context, method string, req Request) (*Respons
 	return &Response{Status: resp.StatusCode, Header: resp.Header, Body: data}, nil
 }
 
-// Get fetches url and requires a 2xx status.
-func (c *Client) Get(ctx context.Context, url string, header map[string]string) (*Response, error) {
-	resp, err := c.Do(ctx, Request{URL: url, Header: header})
+// Get fetches target and requires a 2xx status.
+func (c *Client) Get(ctx context.Context, target string, header map[string]string) (*Response, error) {
+	resp, err := c.Do(ctx, Request{URL: target, Header: header})
 	if err != nil {
 		return nil, err
 	}
 	if !resp.OK() {
-		return nil, &StatusError{URL: url, Status: resp.Status}
+		return nil, &StatusError{URL: target, Status: resp.Status}
 	}
 	return resp, nil
 }

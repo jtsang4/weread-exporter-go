@@ -1,9 +1,11 @@
 package weread
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode"
 	"unicode/utf16"
 	"unicode/utf8"
 )
@@ -99,11 +101,11 @@ func (sc *jsScanner) readString() (string, error) {
 	var b strings.Builder
 	for !sc.eof() {
 		c := sc.s[sc.pos]
-		switch {
-		case c == quote:
+		switch c {
+		case quote:
 			sc.pos++
 			return b.String(), nil
-		case c == '\\':
+		case '\\':
 			sc.pos++
 			if err := sc.readEscape(&b); err != nil {
 				return "", err
@@ -149,11 +151,11 @@ func (sc *jsScanner) readEscape(b *strings.Builder) error {
 	case '\n':
 		// line continuation
 	case 'x':
-		n, err := sc.readHex(2)
+		r, err := sc.readHex(2)
 		if err != nil {
 			return err
 		}
-		b.WriteRune(rune(n))
+		b.WriteRune(r)
 	case 'u':
 		r, err := sc.readUnicodeEscape()
 		if err != nil {
@@ -169,41 +171,58 @@ func (sc *jsScanner) readEscape(b *strings.Builder) error {
 	return nil
 }
 
-func (sc *jsScanner) readHex(n int) (int, error) {
-	if sc.pos+n > len(sc.s) {
-		return 0, fmt.Errorf("weread: js literal: truncated hex escape")
+// hexValue is the value of the hexadecimal digit c, or -1 if c is not one.
+func hexValue(c byte) rune {
+	switch {
+	case c >= '0' && c <= '9':
+		return rune(c - '0')
+	case c >= 'a' && c <= 'f':
+		return rune(c-'a') + 10
+	case c >= 'A' && c <= 'F':
+		return rune(c-'A') + 10
 	}
-	v, err := strconv.ParseUint(sc.s[sc.pos:sc.pos+n], 16, 32)
-	if err != nil {
-		return 0, fmt.Errorf("weread: js literal: bad hex escape %q", sc.s[sc.pos:sc.pos+n])
+	return -1
+}
+
+// readHex reads n hexadecimal digits (at most four: the value must fit a rune).
+func (sc *jsScanner) readHex(n int) (rune, error) {
+	if sc.pos+n > len(sc.s) {
+		return 0, errors.New("weread: js literal: truncated hex escape")
+	}
+	var v rune
+	for _, c := range []byte(sc.s[sc.pos : sc.pos+n]) {
+		d := hexValue(c)
+		if d < 0 {
+			return 0, fmt.Errorf("weread: js literal: bad hex escape %q", sc.s[sc.pos:sc.pos+n])
+		}
+		v = v<<4 | d
 	}
 	sc.pos += n
-	return int(v), nil
+	return v, nil
 }
 
 func (sc *jsScanner) readUnicodeEscape() (rune, error) {
 	if sc.peek() == '{' {
 		end := strings.IndexByte(sc.s[sc.pos:], '}')
 		if end < 0 {
-			return 0, fmt.Errorf("weread: js literal: unterminated \\u{...}")
+			return 0, errors.New(`weread: js literal: unterminated \u{...}`)
 		}
 		v, err := strconv.ParseUint(sc.s[sc.pos+1:sc.pos+end], 16, 32)
-		if err != nil {
-			return 0, fmt.Errorf("weread: js literal: bad \\u{...} escape")
+		if err != nil || v > unicode.MaxRune {
+			return 0, errors.New(`weread: js literal: bad \u{...} escape`)
 		}
 		sc.pos += end + 1
 		return rune(v), nil
 	}
-	hi, err := sc.readHex(4)
+	r, err := sc.readHex(4)
 	if err != nil {
 		return 0, err
 	}
-	r := rune(hi)
 	if utf16.IsSurrogate(r) && strings.HasPrefix(sc.s[sc.pos:], `\u`) {
 		save := sc.pos
 		sc.pos += 2
 		if lo, err := sc.readHex(4); err == nil {
-			if pair := utf16.DecodeRune(r, rune(lo)); pair != utf8.RuneError {
+			if pair := utf16.DecodeRune(r, lo); pair != utf8.RuneError {
 				return pair, nil
 			}
 		}
@@ -313,7 +332,7 @@ func (sc *jsScanner) objectFields(fn func(key string) error) error {
 		sc.skipSpace()
 		start := sc.pos
 		if err := fn(key); err != nil {
-			if err != errSkipValue {
+			if !errors.Is(err, errSkipValue) {
 				return err
 			}
 			sc.pos = start

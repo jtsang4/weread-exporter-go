@@ -2,6 +2,7 @@ package markdown
 
 import (
 	"encoding/xml"
+	"errors"
 	"io"
 	"strings"
 	"testing"
@@ -21,7 +22,7 @@ func wellFormed(t *testing.T, s string) {
 	t.Helper()
 	dec := xml.NewDecoder(strings.NewReader("<root>" + s + "</root>"))
 	for {
-		if _, err := dec.Token(); err == io.EOF {
+		if _, err := dec.Token(); errors.Is(err, io.EOF) {
 			return
 		} else if err != nil {
 			t.Fatalf("not well-formed XML: %v\n%s", err, s)

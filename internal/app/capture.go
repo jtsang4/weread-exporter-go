@@ -155,15 +155,17 @@ func (e *Exporter) captureOne(ctx context.Context, sess browserSession, bookID s
 		case ctx.Err() != nil:
 			return "", ctx.Err()
 		case errors.Is(err, browser.ErrLoginRequired):
-			if loginRounds++; loginRounds > 2 {
-				return "", fmt.Errorf("%w: the reader keeps asking for a login (%v)", ErrLoginNeeded, err)
+			loginRounds++
+			if loginRounds > 2 {
+				return "", fmt.Errorf("%w: the reader keeps asking for a login (%w)", ErrLoginNeeded, err)
 			}
 			if err := e.handleLoginRequired(ctx, sess); err != nil {
 				return "", err
 			}
 			continue // not the chapter's fault: no attempt is used up
 		case errors.Is(err, browser.ErrHorizontalReader):
-			if modeRounds++; modeRounds > 1 {
+			modeRounds++
+			if modeRounds > 1 {
 				return "", fmt.Errorf("%w: the reader is still paged after switching the account to the vertical reader", ErrHorizontalReader)
 			}
 			if err := e.ensureVertical(ctx, bookID); err != nil {

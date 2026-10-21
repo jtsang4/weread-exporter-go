@@ -145,10 +145,10 @@ func (s *stubSession) InjectCookies(_ context.Context, cookies map[string]string
 	return nil
 }
 
-func (s *stubSession) Navigate(_ context.Context, url string, _ time.Duration) error {
+func (s *stubSession) Navigate(_ context.Context, page string, _ time.Duration) error {
 	s.b.mu.Lock()
 	defer s.b.mu.Unlock()
-	s.b.navigations = append(s.b.navigations, url)
+	s.b.navigations = append(s.b.navigations, page)
 	return nil
 }
 
@@ -180,12 +180,12 @@ func (s *stubSession) Cookies(context.Context) (map[string]string, error) {
 	return s.b.loginCookies, nil
 }
 
-func (s *stubSession) CaptureChapter(ctx context.Context, url string, _ time.Duration) (string, error) {
+func (s *stubSession) CaptureChapter(ctx context.Context, page string, _ time.Duration) (string, error) {
 	s.b.mu.Lock()
 	hook := s.b.onCapture
 	s.b.mu.Unlock()
 	if hook != nil {
-		hook(url)
+		hook(page)
 	}
 	if err := ctx.Err(); err != nil {
 		return "", err
@@ -193,12 +193,12 @@ func (s *stubSession) CaptureChapter(ctx context.Context, url string, _ time.Dur
 
 	s.b.mu.Lock()
 	defer s.b.mu.Unlock()
-	s.b.captured = append(s.b.captured, url)
-	if errs := s.b.failures[url]; len(errs) > 0 {
-		s.b.failures[url] = errs[1:]
+	s.b.captured = append(s.b.captured, page)
+	if errs := s.b.failures[page]; len(errs) > 0 {
+		s.b.failures[page] = errs[1:]
 		return "", errs[0]
 	}
-	md, ok := s.b.pages[url]
+	md, ok := s.b.pages[page]
 	if !ok {
 		return "", &browser.ChapterUnavailableError{Footer: "no such page"}
 	}
@@ -219,7 +219,6 @@ type harness struct {
 	br   *stubBrowser
 	cfg  Config
 	log  *syncBuffer
-	out  *syncBuffer
 
 	sleeps []time.Duration
 	// onRequest sees the HTTP requests of the exporter (not the browser's); an
@@ -262,7 +261,6 @@ func newHarness(t *testing.T) *harness {
 		site: site,
 		br:   newStubBrowser(),
 		log:  &syncBuffer{},
-		out:  &syncBuffer{},
 		cfg: Config{
 			BookRef:     testBookID,
 			Formats:     []string{FormatEPUB},
@@ -313,7 +311,7 @@ func (h *harness) exporter(tweak ...func(*Exporter)) *Exporter {
 		h.t.Fatal(err)
 	}
 	client := &http.Client{Transport: siteTransport{target: target, hook: h.onRequest}, Timeout: 30 * time.Second}
-	e, err := New(h.cfg, logger, withTestClient(client), WithOutput(h.out), WithInput(strings.NewReader("")))
+	e, err := New(h.cfg, logger, withTestClient(client), WithInput(strings.NewReader("")))
 	if err != nil {
 		h.t.Fatal(err)
 	}

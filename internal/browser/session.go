@@ -181,8 +181,9 @@ func chromeFlags(o Options, goos, profileDir string) []chromeFlag {
 
 // randomUserAgent is a Windows desktop Chrome user agent with a random major version.
 func randomUserAgent() string {
-	return fmt.Sprintf("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%d.0.0.0 Safari/537.36",
-		90+rand.IntN(41))
+	//nolint:gosec // a user agent string needs no cryptographic randomness
+	major := 90 + rand.IntN(41)
+	return fmt.Sprintf("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%d.0.0.0 Safari/537.36", major)
 }
 
 // ErrNoDisplay is returned when a visible browser is requested but the system has no display.

@@ -3,7 +3,6 @@ package app
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -50,7 +49,6 @@ type Exporter struct {
 	cookies  *weread.Cookies
 	extraCSS string
 
-	out      io.Writer // user-facing results
 	in       io.Reader // answers to prompts
 	launch   launchFunc
 	printPDF pdfFunc
@@ -83,11 +81,6 @@ func WithHTTPClient(c *http.Client) Option {
 	}
 }
 
-// WithOutput sets where results (file names, the book table) are printed.
-func WithOutput(w io.Writer) Option {
-	return func(e *Exporter) error { e.out = w; return nil }
-}
-
 // WithInput sets where prompt answers are read from.
 func WithInput(r io.Reader) Option {
 	return func(e *Exporter) error { e.in = r; return nil }
@@ -105,7 +98,6 @@ func New(cfg Config, log *slog.Logger, opts ...Option) (*Exporter, error) {
 	e := &Exporter{
 		cfg:      cfg,
 		log:      log,
-		out:      io.Discard,
 		in:       os.Stdin,
 		launch:   defaultLaunch,
 		printPDF: browser.PrintHTMLToPDF,
@@ -159,11 +151,6 @@ func sleepContext(ctx context.Context, d time.Duration) error {
 	}
 }
 
-// printf writes a line of user-facing output.
-func (e *Exporter) printf(format string, args ...any) {
-	_, _ = fmt.Fprintf(e.out, format, args...)
-}
-
 // browserOptions are the browser settings derived from the configuration.
 func (e *Exporter) browserOptions() browser.Options {
 	return browser.Options{
@@ -195,11 +182,9 @@ func (e *Exporter) confirm(ctx context.Context, question string) (bool, error) {
 		e.log.Info("assuming yes", "question", question)
 		return true, nil
 	}
-	if f, ok := e.in.(*os.File); ok {
-		if info, err := f.Stat(); err != nil || info.Mode()&os.ModeCharDevice == 0 {
-			e.log.Warn("not asking because input is not a terminal (use --yes to continue)", "question", question)
-			return false, nil
-		}
+	if f, ok := e.in.(*os.File); ok && !isTerminal(f) {
+		e.log.Warn("not asking because input is not a terminal (use --yes to continue)", "question", question)
+		return false, nil
 	}
 	_, _ = fmt.Fprintf(os.Stderr, "%s [y/N] ", question)
 
@@ -226,7 +211,8 @@ func detached(ctx context.Context, d time.Duration) (context.Context, context.Ca
 	return context.WithTimeout(context.WithoutCancel(ctx), d)
 }
 
-// isCancel reports whether err is a cancellation or timeout of the whole run.
-func isCancel(err error) bool {
-	return errors.Is(err, context.Canceled)
+// isTerminal reports whether f is a character device, such as a terminal.
+func isTerminal(f *os.File) bool {
+	info, err := f.Stat()
+	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }

@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"io"
 	"path"
 	"strings"
@@ -44,7 +45,7 @@ func assertWellFormedXML(t *testing.T, name string, data []byte) {
 	dec := xml.NewDecoder(bytes.NewReader(data))
 	dec.Strict = true
 	for {
-		if _, err := dec.Token(); err == io.EOF {
+		if _, err := dec.Token(); errors.Is(err, io.EOF) {
 			return
 		} else if err != nil {
 			t.Fatalf("%s is not well-formed XML: %v", name, err)

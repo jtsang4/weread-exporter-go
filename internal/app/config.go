@@ -274,10 +274,10 @@ func (cs ChapterSpec) Resolve(total int) ([]int, error) {
 func (cs ChapterSpec) String() string {
 	parts := make([]string, len(cs))
 	for i, r := range cs {
-		switch {
-		case r.To == r.From:
+		switch r.To {
+		case r.From:
 			parts[i] = strconv.Itoa(r.From)
-		case r.To == 0:
+		case 0:
 			parts[i] = strconv.Itoa(r.From) + "-"
 		default:
 			parts[i] = strconv.Itoa(r.From) + "-" + strconv.Itoa(r.To)

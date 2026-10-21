@@ -83,7 +83,7 @@ func (m *Meta) Validate() error {
 
 // coverSizePrefix matches the size prefix of a WeRead cover file name: "s_"
 // (thumbnail) or "t<N>_" (N = 1..9, larger is bigger).
-var coverSizePrefix = regexp.MustCompile(`^(s|t[0-9])_`)
+var coverSizePrefix = regexp.MustCompile(`^(s|t\d)_`)
 
 // CoverURLs returns the URLs to try for the cover image, best first: the
 // largest rendition ("t9_") and then the URL from the book page as a fallback.
