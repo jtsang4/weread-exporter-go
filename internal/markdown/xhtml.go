@@ -150,6 +150,74 @@ func isXMLChar(r rune) bool {
 	return false
 }
 
+// RewriteImages calls fn for the src of every <img>. fn returns the new src, or
+// keep=false to remove the image from the tree altogether. It returns the
+// (possibly shorter) list of top-level nodes; callers must use that instead of
+// the slice they passed in.
+func RewriteImages(nodes []*xhtml.Node, fn func(src string) (newSrc string, keep bool)) []*xhtml.Node {
+	var walk func(n *xhtml.Node)
+	walk = func(n *xhtml.Node) {
+		for c := n.FirstChild; c != nil; {
+			next := c.NextSibling // c may be unlinked below
+			if c.Type == xhtml.ElementNode && c.Data == "img" {
+				for i := range c.Attr {
+					if c.Attr[i].Key != "src" {
+						continue
+					}
+					if newSrc, keep := fn(c.Attr[i].Val); keep {
+						c.Attr[i].Val = newSrc
+					} else {
+						n.RemoveChild(c)
+					}
+					break
+				}
+			} else {
+				walk(c)
+			}
+			c = next
+		}
+	}
+	// Top-level nodes of a fragment have no common parent; wrap them so that
+	// removal works for them as well.
+	holder := &xhtml.Node{Type: xhtml.ElementNode, Data: "div"}
+	for _, n := range nodes {
+		if n.Parent != nil {
+			n.Parent.RemoveChild(n)
+		}
+		holder.AppendChild(n)
+	}
+	walk(holder)
+
+	var out []*xhtml.Node
+	for c := holder.FirstChild; c != nil; {
+		next := c.NextSibling
+		holder.RemoveChild(c)
+		out = append(out, c)
+		c = next
+	}
+	return out
+}
+
+// ImageSources lists the src of every <img> in document order.
+func ImageSources(nodes []*xhtml.Node) []string {
+	var srcs []string
+	var walk func(n *xhtml.Node)
+	walk = func(n *xhtml.Node) {
+		if n.Type == xhtml.ElementNode && n.Data == "img" {
+			if src := attr(n, "src"); src != "" {
+				srcs = append(srcs, src)
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	for _, n := range nodes {
+		walk(n)
+	}
+	return srcs
+}
+
 // HasRemoteImages reports whether any <img> still points at http(s).
 func HasRemoteImages(nodes []*xhtml.Node) bool {
 	found := false

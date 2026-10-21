@@ -139,3 +139,33 @@ func TestAssignAnchorIDsKeepsDocumentOrderAndExistingIDs(t *testing.T) {
 		t.Fatalf("an existing id must be reused, got %v", ids)
 	}
 }
+
+func TestRewriteImagesAndImageSources(t *testing.T) {
+	nodes, err := ParseFragment(`<img src="images/top.jpg"><p>a <img src="images/a.jpg" alt=""> b</p><p><img src="images/gone.jpg"></p><img src="images/gone-top.jpg"><div><img src="https://x/r.png"></div>`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(ImageSources(nodes), " "); got != "images/top.jpg images/a.jpg images/gone.jpg images/gone-top.jpg https://x/r.png" {
+		t.Fatalf("ImageSources = %q", got)
+	}
+
+	nodes = RewriteImages(nodes, func(src string) (string, bool) {
+		switch {
+		case strings.Contains(src, "gone"):
+			return "", false
+		case strings.HasPrefix(src, "images/"):
+			return strings.Replace(src, ".jpg", ".png", 1), true
+		}
+		return src, true
+	})
+	out := SerializeXHTML(nodes)
+	for _, want := range []string{`<img src="images/top.png" />`, `<img src="images/a.png" alt="" />`, `<p></p>`, `<img src="https://x/r.png" />`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output lacks %s:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "gone") {
+		t.Errorf("removed images are still present:\n%s", out)
+	}
+	wellFormed(t, out)
+}
