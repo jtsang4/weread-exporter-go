@@ -18,14 +18,14 @@ func WriteTXT(w io.Writer, src Source) error {
 	if err := src.Validate(); err != nil {
 		return err
 	}
-	for i, ch := range src.Meta.Chapters {
-		md, err := src.chapterMarkdown(i)
+	for _, sel := range src.selected() {
+		md, err := src.chapterMarkdown(sel.Pos)
 		if err != nil {
 			return err
 		}
 		html, err := markdown.ToHTML(md)
 		if err != nil {
-			return fmt.Errorf("export: convert chapter %d %q: %w", i+1, ch.Title, err)
+			return fmt.Errorf("export: convert chapter %d %q: %w", sel.Pos+1, sel.Chapter.Title, err)
 		}
 		if _, err := io.WriteString(w, strings.TrimRight(markdown.Text(html), "\n")+"\n\n"); err != nil {
 			return err
@@ -50,8 +50,8 @@ func WriteMarkdown(path string, src Source) error {
 
 	var text strings.Builder
 	used := map[string]struct{}{}
-	for i := range src.Meta.Chapters {
-		md, err := src.chapterMarkdown(i)
+	for _, sel := range src.selected() {
+		md, err := src.chapterMarkdown(sel.Pos)
 		if err != nil {
 			return err
 		}

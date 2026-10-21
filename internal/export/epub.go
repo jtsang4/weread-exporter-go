@@ -72,20 +72,22 @@ func WriteEPUB(w io.Writer, src Source, opts EPUBOptions) error {
 	}
 
 	// Convert the chapters first: only then do we know which images are used.
-	chapters := make([]epubChapter, len(meta.Chapters))
-	tocInput := make([]chapterTOC, len(meta.Chapters))
-	for i, ch := range meta.Chapters {
-		md, err := src.chapterMarkdown(i)
+	selected := src.selected()
+	chapters := make([]epubChapter, len(selected))
+	tocInput := make([]chapterTOC, len(selected))
+	for n, sel := range selected {
+		ch := sel.Chapter
+		md, err := src.chapterMarkdown(sel.Pos)
 		if err != nil {
 			return err
 		}
 		html, err := markdown.ToHTML(md)
 		if err != nil {
-			return fmt.Errorf("export: convert chapter %d %q: %w", i+1, ch.Title, err)
+			return fmt.Errorf("export: convert chapter %d %q: %w", sel.Pos+1, ch.Title, err)
 		}
 		nodes, err := markdown.ParseFragment(html)
 		if err != nil {
-			return fmt.Errorf("export: parse chapter %d %q: %w", i+1, ch.Title, err)
+			return fmt.Errorf("export: parse chapter %d %q: %w", sel.Pos+1, ch.Title, err)
 		}
 
 		titles := make([]string, len(ch.Anchors))
@@ -109,8 +111,8 @@ func WriteEPUB(w io.Writer, src Source, opts EPUBOptions) error {
 			return "images/" + img.zipName, true
 		})
 
-		file := fmt.Sprintf("chap_%04d.xhtml", i+1)
-		chapters[i] = epubChapter{
+		file := fmt.Sprintf("chap_%04d.xhtml", n+1)
+		chapters[n] = epubChapter{
 			file:   file,
 			doc:    xhtmlDocument(ch.Title, markdown.SerializeXHTML(nodes), ""),
 			remote: markdown.HasRemoteImages(nodes),
@@ -122,7 +124,7 @@ func WriteEPUB(w io.Writer, src Source, opts EPUBOptions) error {
 			}
 			anchors = append(anchors, anchorTOC{Title: a.Title, ID: ids[j]})
 		}
-		tocInput[i] = chapterTOC{File: file, Title: displayTitle(ch.Title, i), Level: ch.Level, Anchors: anchors}
+		tocInput[n] = chapterTOC{File: file, Title: displayTitle(ch.Title, sel.Pos), Level: ch.Level, Anchors: anchors}
 	}
 	toc := buildTOC(tocInput)
 
