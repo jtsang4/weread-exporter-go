@@ -129,7 +129,7 @@ func writeInfoText(w io.Writer, info *app.Info) {
 		fmt.Fprintln(w)
 
 		tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', tabwriter.AlignRight)
-		fmt.Fprintln(tw, "No.\tWords\tCached\tTitle")
+		fmt.Fprintln(tw, "No.\tWords\tCached\t  Title")
 		for i, ch := range b.Meta.Chapters {
 			cached := "no"
 			if b.Cached[i] {
@@ -139,7 +139,7 @@ func writeInfoText(w io.Writer, info *app.Info) {
 			if ch.Level > 1 {
 				indent = strings.Repeat("  ", ch.Level-1)
 			}
-			fmt.Fprintf(tw, "%d\t%d\t%s\t%s%s\n", i+1, ch.Words, cached, indent, ch.Title)
+			fmt.Fprintf(tw, "%d\t%d\t%s\t  %s%s\n", i+1, ch.Words, cached, indent, ch.Title)
 		}
 		_ = tw.Flush()
 		return
