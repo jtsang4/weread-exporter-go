@@ -112,6 +112,53 @@ func TestStoreRewriteChapterKeepsTheRawCaptureOnce(t *testing.T) {
 	}
 }
 
+func TestStoreIsProcessed(t *testing.T) {
+	s := newTestStore(t)
+	if s.IsProcessed(0, 41) {
+		t.Fatal("a chapter that does not exist cannot be processed")
+	}
+	if err := s.SaveChapter(0, 41, "raw capture"); err != nil {
+		t.Fatal(err)
+	}
+	if s.IsProcessed(0, 41) {
+		t.Fatal("a raw capture is not processed")
+	}
+	if err := s.RewriteChapter(0, 41, "processed"); err != nil {
+		t.Fatal(err)
+	}
+	if !s.IsProcessed(0, 41) {
+		t.Fatal("a rewritten chapter is processed")
+	}
+}
+
+func TestStoreSaveChapterForgetsTheBackupOfTheReplacedCapture(t *testing.T) {
+	s := newTestStore(t)
+	if err := s.SaveChapter(0, 41, "old capture"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RewriteChapter(0, 41, "old, processed"); err != nil {
+		t.Fatal(err)
+	}
+
+	// The chapter is captured again (for instance after the cached file was deleted).
+	if err := s.SaveChapter(0, 41, "new capture"); err != nil {
+		t.Fatal(err)
+	}
+	if s.IsProcessed(0, 41) {
+		t.Fatal("the new capture has not been processed; the stale backup must be gone")
+	}
+	if got, _ := s.ReadChapter(0, 41); got != "new capture" {
+		t.Fatalf("chapter = %q", got)
+	}
+	if err := s.RewriteChapter(0, 41, "new, processed"); err != nil {
+		t.Fatal(err)
+	}
+	backup, _ := os.ReadFile(s.ChapterPath(0, 41) + ".bak")
+	if string(backup) != "new capture" {
+		t.Fatalf("backup = %q, want the new raw capture", backup)
+	}
+}
+
 func TestStoreRewriteChapterWithoutChapterFails(t *testing.T) {
 	if err := newTestStore(t).RewriteChapter(0, 1, "x"); err == nil {
 		t.Fatal("expected an error")

@@ -20,6 +20,9 @@ var ErrNoMeta = errors.New("book: no cached meta.json")
 // (the original tool treated files of up to 3 bytes as empty).
 const minChapterBytes = 3
 
+// backupSuffix marks the raw capture a processed chapter was made from.
+const backupSuffix = ".bak"
+
 // Store is the cache directory of one book.
 type Store struct {
 	Dir string
@@ -89,16 +92,32 @@ func (s *Store) ReadChapter(index int, chapterID int64) (string, error) {
 	return string(data), nil
 }
 
-// SaveChapter stores freshly captured Markdown.
+// SaveChapter stores freshly captured Markdown. A backup left by an earlier
+// RewriteChapter belongs to the replaced capture, so it is dropped: the new
+// capture has not been post-processed yet.
 func (s *Store) SaveChapter(index int, chapterID int64, markdown string) error {
-	return fsutil.WriteFileAtomic(s.ChapterPath(index, chapterID), []byte(markdown), 0o644)
+	path := s.ChapterPath(index, chapterID)
+	if err := fsutil.WriteFileAtomic(path, []byte(markdown), 0o644); err != nil {
+		return err
+	}
+	if err := os.Remove(path + backupSuffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	return nil
+}
+
+// IsProcessed reports whether the chapter went through RewriteChapter, that is
+// whether its post-processed Markdown replaced the raw capture (which is kept
+// next to it as "<chapter>.md.bak").
+func (s *Store) IsProcessed(index int, chapterID int64) bool {
+	return fsutil.IsFile(s.ChapterPath(index, chapterID) + backupSuffix)
 }
 
 // RewriteChapter replaces a chapter's Markdown with a processed version. The
 // first time, the untouched capture is preserved as "<chapter>.md.bak".
 func (s *Store) RewriteChapter(index int, chapterID int64, markdown string) error {
 	path := s.ChapterPath(index, chapterID)
-	backup := path + ".bak"
+	backup := path + backupSuffix
 	if !fsutil.IsFile(backup) {
 		if err := os.Rename(path, backup); err != nil {
 			return fmt.Errorf("book: back up %s: %w", path, err)
