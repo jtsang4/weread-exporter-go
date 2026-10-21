@@ -3,6 +3,7 @@ package weread
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -49,14 +50,18 @@ func TestUserInfoOK(t *testing.T) {
 	}
 }
 
-func TestUserInfoRefreshesExpiredSession(t *testing.T) {
-	var refreshed atomic.Bool
+func TestUserInfoRenewsExpiredSession(t *testing.T) {
+	var renewals atomic.Int32
+	var gotMethod, gotType, gotBody, gotCookie string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/":
-			refreshed.Store(true)
+		case "/web/login/renewal":
+			renewals.Add(1)
+			body, _ := io.ReadAll(r.Body)
+			gotMethod, gotType, gotBody, gotCookie = r.Method, r.Header.Get("Content-Type"), string(body), r.Header.Get("Cookie")
 			http.SetCookie(w, &http.Cookie{Name: "wr_skey", Value: "fresh", Path: "/"})
-			_, _ = w.Write([]byte("home"))
+			http.SetCookie(w, &http.Cookie{Name: "wr_pf", Value: "7", Path: "/"})
+			_, _ = w.Write([]byte(`{"succ":1}`))
 		case "/web/user":
 			if strings.Contains(r.Header.Get("Cookie"), "wr_skey=fresh") {
 				_, _ = w.Write([]byte(userOK))
@@ -74,15 +79,56 @@ func TestUserInfoRefreshesExpiredSession(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !refreshed.Load() || info.Name == "" {
-		t.Fatalf("refreshed=%v info=%+v", refreshed.Load(), info)
+	if renewals.Load() != 1 || info.Name == "" {
+		t.Fatalf("renewals=%d info=%+v", renewals.Load(), info)
 	}
-	if cookies.Get("wr_skey") != "fresh" || cookies.Get("wr_rt") != "long-lived" {
-		t.Fatalf("cookies after refresh = %v", cookies.Map())
+	if gotMethod != "POST" || !strings.HasPrefix(gotType, "application/json") || !strings.Contains(gotBody, `"rq"`) {
+		t.Fatalf("renewal request: method=%q type=%q body=%q", gotMethod, gotType, gotBody)
+	}
+	if !strings.Contains(gotCookie, "wr_rt=long-lived") {
+		t.Fatalf("the refresh token was not sent: %q", gotCookie)
+	}
+	if cookies.Get("wr_skey") != "fresh" || cookies.Get("wr_pf") != "7" || cookies.Get("wr_rt") != "long-lived" {
+		t.Fatalf("cookies after renewal = %v", cookies.Map())
 	}
 	reloaded, err := LoadCookies(cookies.Path())
 	if err != nil || reloaded.Get("wr_skey") != "fresh" {
-		t.Fatalf("refreshed cookies were not persisted: %v %v", reloaded, err)
+		t.Fatalf("renewed cookies were not persisted: %v %v", reloaded, err)
+	}
+}
+
+func TestRefreshCookiesRefusedKeepsCookies(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// A refused renewal must not be allowed to overwrite good cookies with
+		// the anonymous ones the site hands out.
+		http.SetCookie(w, &http.Cookie{Name: "wr_skey", Value: "anonymous", Path: "/"})
+		_, _ = w.Write([]byte(`{"succ":0,"errCode":-2012,"errMsg":"登录超时"}`))
+	}))
+	defer srv.Close()
+
+	cookies := cookiesFor(t, "42", map[string]string{"wr_skey": "mine", "wr_rt": "r"})
+	err := newTestClient(t, srv.URL, nil).RefreshCookies(context.Background(), cookies)
+	if !errors.Is(err, ErrInvalidUser) {
+		t.Fatalf("err = %v, want ErrInvalidUser", err)
+	}
+	if cookies.Get("wr_skey") != "mine" {
+		t.Fatalf("a refused renewal changed the cookies: %v", cookies.Map())
+	}
+}
+
+func TestRefreshCookiesHTTPAndJSONErrors(t *testing.T) {
+	for name, handler := range map[string]http.HandlerFunc{
+		"status": func(w http.ResponseWriter, r *http.Request) { http.Error(w, "no", http.StatusForbidden) },
+		"json":   func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("<html>")) },
+	} {
+		t.Run(name, func(t *testing.T) {
+			srv := httptest.NewServer(handler)
+			defer srv.Close()
+			err := newTestClient(t, srv.URL, nil).RefreshCookies(context.Background(), cookiesFor(t, "42", nil))
+			if err == nil || errors.Is(err, ErrInvalidUser) {
+				t.Fatalf("err = %v, want a transport/parse error", err)
+			}
+		})
 	}
 }
 

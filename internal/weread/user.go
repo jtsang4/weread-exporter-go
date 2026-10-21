@@ -29,10 +29,10 @@ type UserInfo struct {
 
 // UserInfo validates the cookies by loading the profile of the logged-in user.
 //
-// When the session key has expired (errCode -2012) the cookies are refreshed
-// from the Set-Cookie headers of the home page - the long-lived wr_rt cookie
-// entitles the client to a new wr_skey - persisted, and the request is retried
-// once. Errors wrapping ErrInvalidUser mean the user has to log in again.
+// When the session key has expired (errCode -2012) it is renewed with the
+// long-lived wr_rt cookie (see RefreshCookies), the cookies are persisted and
+// the request is retried once. Errors wrapping ErrInvalidUser mean the user has
+// to log in again.
 func (c *Client) UserInfo(ctx context.Context, cookies *Cookies) (*UserInfo, error) {
 	vid := cookies.VID()
 	if !isDigits(vid) {
@@ -44,7 +44,7 @@ func (c *Client) UserInfo(ctx context.Context, cookies *Cookies) (*UserInfo, err
 		return nil, err
 	}
 	if info.ErrCode == errCodeSessionExpired {
-		c.log.Info("session expired, refreshing cookies")
+		c.log.Info("session expired, renewing it")
 		if err := c.RefreshCookies(ctx, cookies); err != nil {
 			return nil, err
 		}
@@ -77,20 +77,45 @@ func (c *Client) fetchUser(ctx context.Context, cookies *Cookies, vid string) (*
 	return &info, nil
 }
 
-// RefreshCookies renews the session cookies: visiting the home page with the
-// current cookies makes the server hand out a fresh wr_skey via Set-Cookie. The
-// refreshed set is saved.
+// renewalBody is what the site's own scripts send to renew a session.
+const renewalBody = `{"rq":"%2Fweb%2Fbook%2Fread","ql":true}`
+
+// RefreshCookies renews the session key the way the site's own scripts do: the
+// long-lived wr_rt cookie entitles the client to a new wr_skey, which
+// POST /web/login/renewal hands out in Set-Cookie headers. (Merely visiting the
+// home page yields a wr_skey too, but an anonymous one.) The renewed set is saved.
+// Errors wrapping ErrInvalidUser mean the refresh token is no longer accepted.
 func (c *Client) RefreshCookies(ctx context.Context, cookies *Cookies) error {
-	resp, err := c.Do(ctx, Request{URL: c.baseURL, Header: c.cookieHeaders(cookies)})
+	endpoint := c.baseURL + "/web/login/renewal"
+	header := c.cookieHeaders(cookies)
+	header["Referer"] = c.baseURL + "/"
+	header["Origin"] = c.baseURL
+	header["Content-Type"] = "application/json;charset=UTF-8"
+
+	resp, err := c.Do(ctx, Request{Method: "POST", URL: endpoint, Header: header, Body: []byte(renewalBody)})
 	if err != nil {
 		return err
 	}
+	if !resp.OK() {
+		return &StatusError{URL: endpoint, Status: resp.Status}
+	}
+	var out struct {
+		Succ    int    `json:"succ"`
+		ErrCode int    `json:"errCode"`
+		ErrMsg  string `json:"errMsg"`
+	}
+	if err := json.Unmarshal(resp.Body, &out); err != nil {
+		return fmt.Errorf("weread: parse renewal response: %w", err)
+	}
+	if out.Succ != 1 {
+		return fmt.Errorf("%w: the session could not be renewed (errCode %d %q)", ErrInvalidUser, out.ErrCode, out.ErrMsg)
+	}
 	updated := cookies.MergeSetCookie(resp.Header)
 	if len(updated) == 0 {
-		c.log.Warn("cookie refresh returned no Set-Cookie headers")
+		c.log.Warn("cookie renewal returned no Set-Cookie headers")
 		return nil
 	}
-	c.log.Info("cookies refreshed", "updated", updated)
+	c.log.Info("cookies renewed", "updated", updated)
 	return cookies.Save()
 }
 
