@@ -23,6 +23,9 @@ func requireChrome(t *testing.T) {
 		t.Skip("end-to-end tests are skipped with -short")
 	}
 	if _, err := browser.FindChrome(""); err != nil {
+		if os.Getenv("WEREAD_TEST_REQUIRE_CHROME") != "" {
+			t.Fatalf("Chrome is required (WEREAD_TEST_REQUIRE_CHROME is set): %v", err)
+		}
 		t.Skipf("no Chrome available: %v", err)
 	}
 }
@@ -55,20 +58,25 @@ func zipEntry(t *testing.T, path, name string) string {
 	defer func() { _ = zr.Close() }()
 	for _, f := range zr.File {
 		if f.Name == name {
-			rc, err := f.Open()
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer func() { _ = rc.Close() }()
-			data, err := io.ReadAll(rc)
-			if err != nil {
-				t.Fatal(err)
-			}
-			return string(data)
+			return readZipFile(t, f)
 		}
 	}
 	t.Fatalf("%s has no entry %s", path, name)
 	return ""
+}
+
+func readZipFile(t *testing.T, f *zip.File) string {
+	t.Helper()
+	rc, err := f.Open()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = rc.Close() }()
+	data, err := io.ReadAll(rc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
 }
 
 func TestEndToEndExport(t *testing.T) {
@@ -144,7 +152,7 @@ func TestEndToEndExport(t *testing.T) {
 
 	// Run again: everything is cached and no browser is started.
 	hits := f.site.ReaderHits()
-	code, out, errOut = run(t, append(args, "--overwrite")...)
+	code, _, errOut = run(t, append(args, "--overwrite")...)
 	if code != ExitOK {
 		t.Fatalf("second run: exit %d\n%s", code, errOut)
 	}

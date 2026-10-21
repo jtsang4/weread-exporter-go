@@ -53,9 +53,15 @@ func testLogger(t *testing.T) (*slog.Logger, *lockedBuffer) {
 	return slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{Level: slog.LevelDebug})), buf
 }
 
+// requireChrome skips the test when no Chrome is installed, unless
+// WEREAD_TEST_REQUIRE_CHROME is set (CI does): then a missing browser is an
+// error, so the browser tests cannot be skipped by accident.
 func requireChrome(t *testing.T) {
 	t.Helper()
 	if _, err := FindChrome(""); err != nil {
+		if os.Getenv("WEREAD_TEST_REQUIRE_CHROME") != "" {
+			t.Fatalf("Chrome is required (WEREAD_TEST_REQUIRE_CHROME is set): %v", err)
+		}
 		t.Skipf("no Chrome available: %v", err)
 	}
 }
