@@ -21,9 +21,11 @@ import (
 // restore, so that it still happens after a crash (see recoverReaderMode and the
 // `reader-mode restore` command).
 
-// probeBookID is the book whose reader page is read to learn the account's
-// mode when no book was named (any book will do).
-var probeBookID = weread.MustHash("34336681")
+// DefaultProbeBook is the numeric id of the book whose reader page is read to
+// learn the account's reader mode when no book was named (any book will do).
+const DefaultProbeBook = "34336681"
+
+var probeBookID = weread.MustHash(DefaultProbeBook)
 
 // PendingRestore is a reader-mode change that has to be undone.
 type PendingRestore struct {
@@ -177,9 +179,25 @@ func (e *Exporter) ReaderMode(ctx context.Context) (*ReaderModeStatus, error) {
 	if err := e.refreshSession(ctx); err != nil {
 		return nil, err
 	}
-	mode, err := e.api.ReaderMode(ctx, e.cookies, e.probeBook())
-	if err != nil {
-		return nil, err
+	var (
+		mode    weread.ReaderMode
+		lastErr error
+		found   bool
+	)
+	for _, id := range e.probeBooks() {
+		m, err := e.api.ReaderMode(ctx, e.cookies, id)
+		if err == nil {
+			mode, found = m, true
+			break
+		}
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		e.log.Debug("could not read the reader mode from this book's page", "book", id, "error", err)
+		lastErr = err
+	}
+	if !found {
+		return nil, fmt.Errorf("read the account's reader mode: %w", lastErr)
 	}
 	pending, err := e.readMarker()
 	if err != nil {
@@ -217,10 +235,18 @@ func (e *Exporter) RestoreReaderMode(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-// probeBook is the book used to read the account's reader mode.
-func (e *Exporter) probeBook() string {
+// probeBooks are the books whose reader page tells the account's reader mode:
+// the book being exported, if any, and the default.
+func (e *Exporter) probeBooks() []string {
+	var ids []string
 	if ref, err := weread.ParseRef(e.cfg.BookRef); err == nil && ref.Kind == weread.RefBook {
-		return ref.ID
+		ids = append(ids, ref.ID)
 	}
-	return probeBookID
+	if len(ids) == 0 || ids[0] != probeBookID {
+		ids = append(ids, probeBookID)
+	}
+	return ids
 }
+
+// probeBook is the book a page is opened for when no particular book is needed.
+func (e *Exporter) probeBook() string { return e.probeBooks()[0] }

@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/jtsang4/weread-exporter-go/internal/fakesite"
 	"github.com/jtsang4/weread-exporter-go/internal/weread"
 )
 
@@ -213,6 +215,36 @@ func TestReaderModeCommandsNeedAValidLogin(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 	if err := e.SetReaderMode(context.Background(), weread.ReaderModeVertical); !errors.Is(err, ErrLoginNeeded) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestReaderModeFallsBackToTheDefaultProbeBook(t *testing.T) {
+	h := newHarness(t)
+	h.site.AddBook(fakesite.Book{ID: probeBookID, Title: "Probe", Chapters: []fakesite.Chapter{{UID: 1, Title: "x"}}})
+	h.cfg.BookRef = weread.MustHash("7777777") // a book the site does not know
+	status, err := h.exporter().ReaderMode(context.Background())
+	if err != nil || status.Mode != weread.ReaderModeHorizontal {
+		t.Fatalf("status = %+v, %v", status, err)
+	}
+	if got := h.exporter().probeBooks(); len(got) != 2 || got[0] != h.cfg.BookRef || got[1] != probeBookID {
+		t.Fatalf("probe books = %v", got)
+	}
+
+	h.cfg.BookRef = ""
+	if got := h.exporter().probeBooks(); len(got) != 1 || got[0] != probeBookID {
+		t.Fatalf("probe books = %v", got)
+	}
+	h.cfg.BookRef = "352003193_abc" // a book list names no book
+	if got := h.exporter().probeBook(); got != probeBookID {
+		t.Fatalf("probe book = %v", got)
+	}
+}
+
+func TestReaderModeFailsWhenNoProbeBookWorks(t *testing.T) {
+	h := newHarness(t)
+	h.cfg.BookRef = weread.MustHash("7777777")
+	if _, err := h.exporter().ReaderMode(context.Background()); err == nil || !strings.Contains(err.Error(), "reader mode") {
 		t.Fatalf("err = %v", err)
 	}
 }
