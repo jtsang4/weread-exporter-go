@@ -1,0 +1,32 @@
+# ---- Runtime data (NEVER commit: contains login cookies and exported books) ----
+/cache/
+/output/
+*.log
+cookie.txt
+cookie*.json
+
+# ---- Build artifacts ----
+/bin/
+/dist/
+/weread-exporter
+/weread-exporter.exe
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# ---- Exported books ----
+*.epub
+*.mobi
+*.azw3
+*.pdf
+
+# ---- Go ----
+vendor/
+
+# ---- Editors / OS ----
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
