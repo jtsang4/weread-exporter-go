@@ -1,0 +1,26 @@
+# Text files are stored with LF line endings and checked out as they are, on
+# every platform: the golden files in testdata/ and the embedded assets are
+# compared byte for byte by the tests.
+* text=auto eol=lf
+
+*.go text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+Makefile text eol=lf
+
+# Binary files.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.epub binary
+*.pdf binary
+*.mobi binary
+
+# Generated files stay out of the language statistics and the diff summaries.
+testdata/*.json linguist-generated=true
+go.sum linguist-generated=true -diff

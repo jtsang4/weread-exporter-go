@@ -1,0 +1,133 @@
+# golangci-lint v2 configuration: https://golangci-lint.run/usage/configuration/
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: none
+  enable:
+    # the defaults
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    # bugs
+    - bodyclose
+    - errorlint
+    - gosec
+    - noctx
+    - nilerr
+    # style and maintainability
+    - copyloopvar
+    - gocritic
+    - misspell
+    - nolintlint
+    - revive
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - whitespace
+    - thelper
+    - tparallel
+  settings:
+    errcheck:
+      check-type-assertions: true
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment # a micro-optimisation that hurts readability
+        - shadow # `err` is shadowed on purpose all the time
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+      disabled-checks:
+        - paramTypeCombine
+        - unnamedResult
+        - sprintfQuotedString # the XML and HTML attributes are escaped with escapeAttr, not %q
+        - sloppyReassign # WriteAtomic assigns the named result so that its deferred cleanup sees the error
+    gosec:
+      excludes:
+        - G104 # unhandled errors: errcheck covers them
+        - G204 # running the MOBI converter the user names is a feature
+        - G301 # directories are created 0755, they hold exported books
+        - G302 # likewise for files: only the cookie file is private
+        - G304 # reading files named by the user is what the tool does
+        - G306 # same as G302
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+          arguments:
+            - allowTypesBefore: "*testing.T"
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: exported
+          arguments:
+            - disableStutteringCheck
+        - name: increment-decrement
+        - name: var-declaration
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: errorf
+        - name: empty-block
+        - name: superfluous-else
+        - name: unreachable-code
+        - name: redefines-builtin-id
+    staticcheck:
+      checks:
+        - all
+        - -ST1000 # package comments: revive checks them
+        - -ST1003 # naming: revive checks it
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      # Tests may ignore errors of cleanup calls, use fixed file modes, and
+      # start the processes they test.
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+          - noctx
+          - unparam
+      # Tests build paths of other operating systems on purpose.
+      - path: _test\.go
+        linters:
+          - gocritic
+        text: filepathJoin
+      # The fake site is a test double: its cookies are as insecure as the plain
+      # HTTP server it runs on.
+      - path: internal/fakesite/
+        linters:
+          - gosec
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    gofmt:
+      simplify: true
+    goimports:
+      local-prefixes:
+        - github.com/jtsang4/weread-exporter-go
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
