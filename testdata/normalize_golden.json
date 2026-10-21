@@ -1,0 +1,127 @@
+[
+ {
+  "name": "empty",
+  "in": "",
+  "out": "\n"
+ },
+ {
+  "name": "single newline",
+  "in": "\n",
+  "out": "\n"
+ },
+ {
+  "name": "single line",
+  "in": "hello",
+  "out": "hello\n"
+ },
+ {
+  "name": "wrapped paragraph (english rows keep their trailing space)",
+  "in": "The quick brown fox \njumps over the lazy \ndog.\n",
+  "out": "The quick brown fox jumps over the lazy dog.\n"
+ },
+ {
+  "name": "wrapped paragraph (cjk rows)",
+  "in": "这是第一行文字，\n这是第二行文字。\n",
+  "out": "这是第一行文字，这是第二行文字。\n"
+ },
+ {
+  "name": "two paragraphs",
+  "in": "first row\nsecond row\n\nthird row\n",
+  "out": "first rowsecond row\n\nthird row\n"
+ },
+ {
+  "name": "many blank lines collapse",
+  "in": "a\n\n\n\n\nb\n",
+  "out": "a\n\nb\n"
+ },
+ {
+  "name": "leading blank lines",
+  "in": "\n\n\na\nb\n",
+  "out": "\n\nab\n"
+ },
+ {
+  "name": "trailing blank lines",
+  "in": "a\nb\n\n\n\n",
+  "out": "ab\n"
+ },
+ {
+  "name": "heading then text",
+  "in": "# Title\n\nText row one\ntext row two\n\n## Sub\n\nMore\n",
+  "out": "# Title\n\nText row onetext row two\n\n## Sub\n\nMore\n"
+ },
+ {
+  "name": "code block",
+  "in": "before\n```\nprint('hi')\n\n  indented\n```\nafter\n",
+  "out": "before\n```\nprint('hi')\n\n  indented\n```\nafter\n"
+ },
+ {
+  "name": "code block directly after a blank line",
+  "in": "before\n\n```\nx = 1\n```\n\nafter\n",
+  "out": "before\n```\nx = 1\n```\n\n\nafter\n"
+ },
+ {
+  "name": "code block at start",
+  "in": "```\nx\n```\n",
+  "out": "\n```\nx\n```\n\n"
+ },
+ {
+  "name": "two code blocks",
+  "in": "a\n```\none\n```\nb\n```\ntwo\n```\nc\n",
+  "out": "a\n```\none\n```\nb\n```\ntwo\n```\nc\n"
+ },
+ {
+  "name": "unclosed code block swallows the rest",
+  "in": "a\n```\ncode\n\nmore code\n",
+  "out": "a\n```\ncode\n\nmore code\n\n\n"
+ },
+ {
+  "name": "fence with language is ordinary text",
+  "in": "a\n```python\nb\n```\nc\n",
+  "out": "a```pythonb\n```\nc\n\n\n"
+ },
+ {
+  "name": "fence with trailing space is ordinary text",
+  "in": "a\n``` \nb\n",
+  "out": "a``` b\n"
+ },
+ {
+  "name": "blank lines inside code are kept",
+  "in": "```\na\n\n\nb\n```\n",
+  "out": "\n```\na\n\n\nb\n```\n\n"
+ },
+ {
+  "name": "image line",
+  "in": "text\n\n![](https://cdn.example.com/a.jpg)\n\nmore\n",
+  "out": "text\n\n![](https://cdn.example.com/a.jpg)\n\nmore\n"
+ },
+ {
+  "name": "inline markup",
+  "in": "a **bold** and `code` and <sup>1</sup>\nnext row\n",
+  "out": "a **bold** and `code` and <sup>1</sup>next row\n"
+ },
+ {
+  "name": "windows line endings are not special",
+  "in": "a\r\nb\r\n\r\nc\r\n",
+  "out": "a\rb\r\rc\r\n"
+ },
+ {
+  "name": "only blank lines",
+  "in": "\n\n\n",
+  "out": "\n"
+ },
+ {
+  "name": "list-like rows",
+  "in": "- one\n- two\n\n- three\n",
+  "out": "- one- two\n\n- three\n"
+ },
+ {
+  "name": "unicode",
+  "in": "emoji 😀 row\nnext — row\n",
+  "out": "emoji 😀 rownext — row\n"
+ },
+ {
+  "name": "long mixed document",
+  "in": "# Chapter\n\nIntro row one \nintro row two\n\n```\ncode()\n```\n\n- a\n- b\n\n## Section\n\ntext 1\ntext 2\n\n",
+  "out": "# Chapter\n\nIntro row one intro row two\n```\ncode()\n```\n\n\n- a- b\n\n## Section\n\ntext 1text 2\n"
+ }
+]
