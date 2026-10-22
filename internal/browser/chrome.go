@@ -171,10 +171,30 @@ func ChromeMajorVersion(ctx context.Context, path string) (int, error) {
 }
 
 // majorVersionFromInstallDir reads the major version from the versioned
-// directory Chrome keeps next to its executable, as in
-// ".../Google/Chrome/Application/155.0.8059.86/chrome.exe".
+// directory Chrome installs next to its executable. On Linux the executable
+// sits inside it (".../120.0.6099.109/chrome"); on Windows chrome.exe is one
+// level above it (".../Application/chrome.exe" and ".../Application/155.0.8059.86/").
 func majorVersionFromInstallDir(path string) (int, bool) {
-	m := versionPattern.FindStringSubmatch(filepath.Base(filepath.Dir(path)))
+	dir := filepath.Dir(path)
+	if v, ok := majorVersionOfName(filepath.Base(dir)); ok {
+		return v, true
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return 0, false
+	}
+	best := 0
+	for _, e := range entries {
+		if v, ok := majorVersionOfName(e.Name()); ok && v > best {
+			best = v
+		}
+	}
+	return best, best > 0
+}
+
+// majorVersionOfName returns the major version in a name such as "155.0.8059.86".
+func majorVersionOfName(name string) (int, bool) {
+	m := versionPattern.FindStringSubmatch(name)
 	if m == nil {
 		return 0, false
 	}

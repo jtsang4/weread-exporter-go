@@ -147,19 +147,29 @@ func TestParseMajorVersion(t *testing.T) {
 }
 
 func TestMajorVersionFromInstallDir(t *testing.T) {
-	tests := map[string]int{
-		// filepath.Join keeps the case portable: the separators follow the host.
-		filepath.Join(`C:\Program Files`, "Google", "Chrome", "Application", "155.0.8059.86", "chrome.exe"): 155,
-		filepath.Join("/opt/google/chrome", "120.0.6099.109", "chrome"):                                     120,
+	// The executable sits inside the versioned directory on Linux ...
+	inside := filepath.Join(t.TempDir(), "120.0.6099.109", "chrome")
+	if err := os.MkdirAll(filepath.Dir(inside), 0o755); err != nil {
+		t.Fatal(err)
 	}
-	for path, want := range tests {
-		if got, ok := majorVersionFromInstallDir(path); !ok || got != want {
-			t.Errorf("majorVersionFromInstallDir(%q) = %d, %v; want %d", path, got, ok, want)
+	if got, ok := majorVersionFromInstallDir(inside); !ok || got != 120 {
+		t.Errorf("majorVersionFromInstallDir(%q) = %d, %v; want 120", inside, got, ok)
+	}
+
+	// ... and one level above it on Windows, next to the versioned directory.
+	app := filepath.Join(t.TempDir(), "Application")
+	for _, name := range []string{"155.0.8059.86", "154.0.7000.10", "SetupMetrics"} {
+		if err := os.MkdirAll(filepath.Join(app, name), 0o755); err != nil {
+			t.Fatal(err)
 		}
 	}
+	if got, ok := majorVersionFromInstallDir(filepath.Join(app, "chrome.exe")); !ok || got != 155 {
+		t.Errorf("majorVersionFromInstallDir(app/chrome.exe) = %d, %v; want 155", got, ok)
+	}
+
 	for _, path := range []string{
 		"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-		"chrome.exe",
+		filepath.Join(t.TempDir(), "chrome.exe"),
 		"",
 	} {
 		if got, ok := majorVersionFromInstallDir(path); ok {
