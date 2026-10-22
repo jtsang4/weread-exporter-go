@@ -20,6 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # The minimum Go version of go.mod: golangci-lint is a prebuilt binary that
+      # cannot read the standard library of a Go release newer than itself, and
+      # the vet and lint steps prove that the code compiles with the minimum.
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
@@ -38,6 +41,9 @@ jobs:
 
       - name: go vet
         run: go vet ./...
+
+      - name: Third-party notices are up to date
+        run: make notices-check
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
@@ -69,7 +75,8 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: stable
+          check-latest: true
 
       - name: Browser version
         if: runner.os != 'Windows'
@@ -89,6 +96,22 @@ jobs:
         shell: bash
         run: go tool cover -func=coverage.txt | tail -n 1
 
+  test-min-go:
+    name: Test (minimum Go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Go version
+        run: go version
+
+      - name: Test without a browser
+        run: go test -short -count=1 ./...
+
   build:
     name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
     runs-on: ubuntu-latest
@@ -106,7 +129,8 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: stable
+          check-latest: true
 
       # vet type-checks the tests of the target platform as well.
       - name: go vet
@@ -131,7 +155,8 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: stable
+          check-latest: true
 
       - uses: goreleaser/goreleaser-action@v6
         with:
@@ -151,15 +176,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Scans with the newest Go release, whose standard library has the fixes.
       - uses: golang/govulncheck-action@v1
         with:
-          go-version-file: go.mod
           go-package: ./...
 
   ci-ok:
     name: CI passed
     if: always()
-    needs: [lint, test, build, release-check, vulncheck]
+    needs: [lint, test, test-min-go, build, release-check, vulncheck]
     runs-on: ubuntu-latest
     steps:
       - name: Check the results of the jobs

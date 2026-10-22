@@ -27,9 +27,12 @@ jobs:
         with:
           fetch-depth: 0 # the changelog needs the history and the previous tag
 
+      # The newest Go release, not the minimum of go.mod: the binaries contain
+      # the standard library, so they should have its latest security fixes.
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: stable
+          check-latest: true
 
       # The browser tests run in CI for every commit; do not publish a tag that
       # does not at least pass the tests that need no browser.
