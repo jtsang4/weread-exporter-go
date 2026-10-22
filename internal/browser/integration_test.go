@@ -115,11 +115,14 @@ func launchFor(t *testing.T, site *fakesite.Site, mutate ...func(*Options)) *Ses
 	return launch(t, opts)
 }
 
+// capture gives a capture a generous budget: these tests run a real Chrome
+// next to every other test on a shared CI runner, where a page that loads in
+// half a second locally can take tens of seconds (seen on windows-latest).
 func capture(t *testing.T, s *Session, url string) (string, error) {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
-	return s.CaptureChapter(ctx, url, 20*time.Second)
+	return s.CaptureChapter(ctx, url, time.Minute)
 }
 
 func mustCapture(t *testing.T, s *Session, url string) string {
