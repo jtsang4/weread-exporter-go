@@ -10,6 +10,7 @@
 把[微信读书](https://weread.qq.com/)网页版里你**有权阅读**的书导出成 **EPUB / PDF / MOBI / TXT / Markdown**。
 
 这是 [drunkdream/weread-exporter](https://github.com/drunkdream/weread-exporter)（Python）的 Go 重写版：单个静态二进制文件，不需要 Python 和 pip，支持 Linux、macOS、Windows 的 amd64 与 arm64。
+相比原版，新增了 Markdown 输出、`--chapters` 按章节导出、`info` 与 `reader-mode` 等子命令，并会自动切换和恢复账号的阅读模式。
 
 ## 特性
 

@@ -10,6 +10,7 @@
 Export the books you are **allowed to read** on [WeChat Read](https://weread.qq.com/) (微信读书, WeRead) to **EPUB, PDF, MOBI, TXT and Markdown**.
 
 This is a Go rewrite of [drunkdream/weread-exporter](https://github.com/drunkdream/weread-exporter) (Python): one static binary, no Python or pip, for Linux, macOS and Windows on amd64 and arm64.
+Compared with the original it adds Markdown output, `--chapters` to export part of a book, the `info` and `reader-mode` subcommands, and switching the account's reader mode back and forth by itself.
 
 ## Features
 
