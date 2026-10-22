@@ -24,6 +24,8 @@ const (
 	epubLang     = "zh-CN"
 	epubRoot     = "EPUB/" // directory of the package inside the container
 	xmlHeader    = `<?xml version="1.0" encoding="UTF-8"?>` + "\n"
+	// remoteImageText is what a link to a picture outside the package reads.
+	remoteImageText = "[图片]"
 )
 
 // EPUBOptions tunes WriteEPUB.
@@ -35,9 +37,8 @@ type EPUBOptions struct {
 }
 
 type epubChapter struct {
-	file   string
-	doc    string
-	remote bool // references images on the web (needs the remote-resources property)
+	file string
+	doc  string
 }
 
 type epubImage struct {
@@ -110,12 +111,19 @@ func WriteEPUB(w io.Writer, src Source, opts EPUBOptions) error {
 			img.used = true
 			return "images/" + img.zipName, true
 		})
+		// Pictures that could not be downloaded earlier still point at the web;
+		// an EPUB may not embed those, so it links to them.
+		nodes, linked := markdown.LinkRemoteImages(nodes, remoteImageText)
+		if linked > 0 {
+			log.Warn("images that were not downloaded are linked in the EPUB instead of embedded",
+				"chapter", ch.Title, "images", linked)
+		}
 
 		file := fmt.Sprintf("chap_%04d.xhtml", n+1)
+		title := displayTitle(ch.Title, sel.Pos) // <title> must not be empty
 		chapters[n] = epubChapter{
-			file:   file,
-			doc:    xhtmlDocument(ch.Title, markdown.SerializeXHTML(nodes), ""),
-			remote: markdown.HasRemoteImages(nodes),
+			file: file,
+			doc:  xhtmlDocument(title, markdown.SerializeXHTML(nodes), ""),
 		}
 		anchors := make([]anchorTOC, 0, len(ch.Anchors))
 		for j, a := range ch.Anchors {
@@ -124,7 +132,7 @@ func WriteEPUB(w io.Writer, src Source, opts EPUBOptions) error {
 			}
 			anchors = append(anchors, anchorTOC{Title: a.Title, ID: ids[j]})
 		}
-		tocInput[n] = chapterTOC{File: file, Title: displayTitle(ch.Title, sel.Pos), Level: ch.Level, Anchors: anchors}
+		tocInput[n] = chapterTOC{File: file, Title: title, Level: ch.Level, Anchors: anchors}
 	}
 	toc := buildTOC(tocInput)
 
@@ -434,11 +442,7 @@ func packageDocument(src Source, identifier string, now time.Time, chapters []ep
 		b.WriteString(`    <item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>` + "\n")
 	}
 	for i, ch := range chapters {
-		props := ""
-		if ch.remote {
-			props = ` properties="remote-resources"`
-		}
-		fmt.Fprintf(&b, `    <item id="chap%04d" href="%s" media-type="application/xhtml+xml"%s/>`+"\n", i+1, escapeAttr(ch.file), props)
+		fmt.Fprintf(&b, `    <item id="chap%04d" href="%s" media-type="application/xhtml+xml"/>`+"\n", i+1, escapeAttr(ch.file))
 	}
 	for i, img := range images {
 		fmt.Fprintf(&b, `    <item id="img%04d" href="images/%s" media-type="%s"/>`+"\n", i+1, escapeAttr(img.zipName), img.mime)

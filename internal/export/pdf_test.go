@@ -3,6 +3,8 @@ package export
 import (
 	"strings"
 	"testing"
+
+	xhtml "golang.org/x/net/html"
 )
 
 func TestPDFHTML(t *testing.T) {
@@ -60,7 +62,33 @@ func TestPDFHTMLNeutralisesActiveContent(t *testing.T) {
 		t.Fatalf("%d closing style tags: user CSS broke out of the element", n)
 	}
 	page := doc[strings.Index(doc, "</style>")+len("</style>"):]
-	notContains(t, page, "<script", "onerror", "<iframe", "alert(", "/etc/passwd")
+
+	// The hostile markup of the chapter is book text: it is shown as escaped
+	// text and must not become an element or an attribute of the page.
+	contains(t, page, "&lt;script&gt;", "&lt;iframe", `onerror="alert(1)"&gt;`)
+	notContains(t, page, "<script", "<iframe", "<img src=\"x\"")
+	root, err := xhtml.Parse(strings.NewReader(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var walk func(n *xhtml.Node)
+	walk = func(n *xhtml.Node) {
+		if n.Type == xhtml.ElementNode {
+			switch n.Data {
+			case "script", "iframe", "object", "embed", "form", "base":
+				t.Errorf("active element <%s> in the page", n.Data)
+			}
+			for _, a := range n.Attr {
+				if strings.HasPrefix(strings.ToLower(a.Key), "on") {
+					t.Errorf("event handler %s=%q on <%s>", a.Key, a.Val, n.Data)
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(root)
 }
 
 func TestPDFHTMLRequiresEveryChapter(t *testing.T) {

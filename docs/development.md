@@ -10,7 +10,7 @@ You need
 - Chrome, Chromium or Edge (the browser tests and the PDF output),
 - `make`,
 - [golangci-lint](https://golangci-lint.run/) v2 (`go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0`; the version CI uses is in `.github/workflows/ci.yml`),
-- optional: [GoReleaser](https://goreleaser.com/) v2 and [actionlint](https://github.com/rhysd/actionlint) to check the release and workflow files, [ShellCheck](https://www.shellcheck.net/) for `scripts/*.sh`, and [EPUBCheck](https://www.w3.org/publishing/epubcheck/) to validate EPUB files.
+- optional: [GoReleaser](https://goreleaser.com/) v2 and [actionlint](https://github.com/rhysd/actionlint) to check the release and workflow files, [ShellCheck](https://www.shellcheck.net/) for `scripts/*.sh`, and [EPUBCheck](https://www.w3.org/publishing/epubcheck/) (`epubcheck` on the `PATH`; `go test ./internal/export` then validates the generated EPUBs with it).
 
 ```bash
 git clone https://github.com/jtsang4/weread-exporter-go.git
@@ -43,6 +43,7 @@ Run one test: `go test ./internal/app -run TestRunWithCustomCSS -v -count=1`.
 | Golden files | `internal/weread` (id hash), `internal/markdown` (normalisation) | nothing; the expected values come from the Python implementation |
 | App tests | `internal/app` | the fake site and a stub browser; no Chrome |
 | Browser tests | `internal/browser` | a real headless Chrome against the fake site |
+| EPUBCheck test | `internal/export` | `epubcheck` on the `PATH` (Java); every message, warnings included, fails the test; skipped otherwise and with `-short` |
 | End-to-end tests | `internal/cli/e2e_test.go` | a real headless Chrome; the whole program from the command line to EPUB, PDF, TXT and Markdown files |
 
 - Browser and end-to-end tests are skipped with `-short` and when Chrome is missing. `WEREAD_TEST_REQUIRE_CHROME=1` turns a missing Chrome into a failure (CI sets it), so the tests cannot be skipped by accident.

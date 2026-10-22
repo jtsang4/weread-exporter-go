@@ -90,19 +90,37 @@ func TestSerializeXHTMLIsAlwaysWellFormed(t *testing.T) {
 	}
 }
 
-func TestHasRemoteImages(t *testing.T) {
-	parse := func(s string) bool {
-		nodes, err := ParseFragment(s)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return HasRemoteImages(nodes)
+func TestLinkRemoteImages(t *testing.T) {
+	cases := []struct {
+		name, in, want string
+		replaced       int
+	}{
+		{"https image in a paragraph", `<p><img src="https://x/a.jpg" alt=""></p>`, `<p><a href="https://x/a.jpg">[图片]</a></p>`, 1},
+		{"scheme and spaces do not matter", `<p><img src=" HTTP://x/a b.jpg "></p>`, `<p><a href="HTTP://x/a b.jpg">[图片]</a></p>`, 1},
+		{"image without a paragraph", `<img src="https://x/a.jpg">`, `<a href="https://x/a.jpg">[图片]</a>`, 1},
+		{"nested and repeated", `<div><p>a<img src="https://x/1.png">b</p><blockquote><img src="http://x/2.png"></blockquote></div>`,
+			`<div><p>a<a href="https://x/1.png">[图片]</a>b</p><blockquote><a href="http://x/2.png">[图片]</a></blockquote></div>`, 2},
+		{"adjacent images", `<p><img src="https://x/1.png"><img src="https://x/2.png"></p>`,
+			`<p><a href="https://x/1.png">[图片]</a><a href="https://x/2.png">[图片]</a></p>`, 2},
+		{"local images stay", `<p><img src="images/a.jpg" alt=""></p>`, `<p><img src="images/a.jpg" alt="" /></p>`, 0},
+		{"only the remote one of a pair", `<p><img src="images/a.jpg"><img src="https://x/b.jpg"></p>`,
+			`<p><img src="images/a.jpg" /><a href="https://x/b.jpg">[图片]</a></p>`, 1},
+		{"links and text stay", `<p>text <a href="https://x">link</a></p>`, `<p>text <a href="https://x">link</a></p>`, 0},
+		{"an image without src stays", `<p><img alt="x"></p>`, `<p><img alt="x" /></p>`, 0},
 	}
-	if !parse(`<p><img src="https://x/a.jpg"></p>`) || !parse(`<img src="HTTP://x/a.jpg">`) {
-		t.Error("remote image not detected")
-	}
-	if parse(`<p><img src="images/a.jpg"></p>`) || parse(`<a href="https://x">link</a>`) || parse(`<p>text</p>`) {
-		t.Error("false positive")
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			nodes, err := ParseFragment(tc.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			nodes, replaced := LinkRemoteImages(nodes, "[图片]")
+			got := SerializeXHTML(nodes)
+			if got != tc.want || replaced != tc.replaced {
+				t.Fatalf("got  %s (%d replaced)\nwant %s (%d)", got, replaced, tc.want, tc.replaced)
+			}
+			wellFormed(t, got)
+		})
 	}
 }
 

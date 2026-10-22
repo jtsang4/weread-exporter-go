@@ -11,6 +11,8 @@ First release of the Go rewrite of [drunkdream/weread-exporter](https://github.c
 ### Added
 
 - Export of a WeRead book (or a book list) to **EPUB 3, PDF, MOBI, TXT and Markdown**; several formats per run with `-o`.
+- EPUB 3 packages that pass [EPUBCheck](https://www.w3.org/publishing/epubcheck/) without warnings; a picture that could not be downloaded is linked in the text (`[图片]`) because an EPUB may not embed images from the web.
+- Tag-like book text (`if x<y and z>w`) is kept as text in EPUB, PDF and TXT; only the footnote markers written by the capture hook are markup.
 - Capture of the chapter text through a hook on the canvas of the web reader, driven by Chrome, Chromium or Edge over the DevTools Protocol (chromedp).
 - Cache layout and `cookie.txt` format compatible with the Python tool; a book that is cached completely is exported without starting a browser.
 - Commands `login` (QR code), `logout`, `info` (table of contents and cache state, `--json`), `reader-mode` (`status`, `vertical`, `horizontal`, `restore`), `version` and `completion`.

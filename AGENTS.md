@@ -22,7 +22,7 @@ make run ARGS="info -b 34336681"
 go test ./internal/app -run TestRunWithCustomCSS -v -count=1      # one test
 ```
 
-Tools: golangci-lint v2 (version pinned in `.github/workflows/ci.yml`), optional GoReleaser v2, actionlint, EPUBCheck.
+Tools: golangci-lint v2 (version pinned in `.github/workflows/ci.yml`), optional GoReleaser v2, actionlint, ShellCheck, EPUBCheck (run it before changing `internal/export/epub.go`).
 
 ## Repository map
 
@@ -74,6 +74,7 @@ Tools: golangci-lint v2 (version pinned in `.github/workflows/ci.yml`), optional
 | unit and golden-file tests (every package) | nothing |
 | `internal/app` tests (stub browser, fake site) | nothing |
 | `internal/browser` tests, `internal/cli/e2e_test.go` (real headless Chrome against `internal/fakesite`) | Chrome; skipped with `-short` or without Chrome |
+| `internal/export/epubcheck_test.go` (W3C EPUBCheck on generated EPUBs, warnings fail) | `epubcheck` on the `PATH`; skipped otherwise and with `-short`; CI does not run it |
 
 `WEREAD_TEST_REQUIRE_CHROME=1` makes a missing Chrome a failure instead of a skip (CI sets it). Leftover test browsers have `chromedp-runner` in their command line (`pkill -f chromedp-runner`); never kill all Chrome processes: the maintainer may be using one.
 

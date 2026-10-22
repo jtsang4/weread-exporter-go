@@ -177,8 +177,14 @@ func RewriteImages(nodes []*xhtml.Node, fn func(src string) (newSrc string, keep
 			c = next
 		}
 	}
-	// Top-level nodes of a fragment have no common parent; wrap them so that
-	// removal works for them as well.
+	return underOneParent(nodes, walk)
+}
+
+// underOneParent runs walk on a parent that holds the given top-level nodes:
+// the top-level nodes of a fragment have no common parent, and walk can only
+// remove or replace the children of the node it is given. It returns what is
+// left of the top-level nodes.
+func underOneParent(nodes []*xhtml.Node, walk func(parent *xhtml.Node)) []*xhtml.Node {
 	holder := &xhtml.Node{Type: xhtml.ElementNode, Data: "div"}
 	for _, n := range nodes {
 		if n.Parent != nil {
@@ -218,33 +224,38 @@ func ImageSources(nodes []*xhtml.Node) []string {
 	return srcs
 }
 
-// HasRemoteImages reports whether any <img> still points at http(s).
-func HasRemoteImages(nodes []*xhtml.Node) bool {
-	found := false
+// LinkRemoteImages replaces every <img> that points at http(s) with a link to
+// the same address that reads text, and returns the new top-level nodes and
+// the number of images replaced. An EPUB must not embed pictures from outside
+// the package (EPUBCheck reports RSC-006 even for items flagged with
+// remote-resources), but a link is always valid and still leads to the picture.
+func LinkRemoteImages(nodes []*xhtml.Node, text string) ([]*xhtml.Node, int) {
+	replaced := 0
 	var walk func(n *xhtml.Node)
 	walk = func(n *xhtml.Node) {
-		if found {
-			return
-		}
-		if n.Type == xhtml.ElementNode && n.Data == "img" {
-			for _, a := range n.Attr {
-				if a.Key == "src" {
-					v := strings.ToLower(strings.TrimSpace(a.Val))
-					if strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://") {
-						found = true
-						return
-					}
+		for c := n.FirstChild; c != nil; {
+			next := c.NextSibling // c is replaced below
+			if c.Type == xhtml.ElementNode && c.Data == "img" {
+				if src := strings.TrimSpace(attr(c, "src")); isRemote(src) {
+					link := &xhtml.Node{Type: xhtml.ElementNode, Data: "a", Attr: []xhtml.Attribute{{Key: "href", Val: src}}}
+					link.AppendChild(&xhtml.Node{Type: xhtml.TextNode, Data: text})
+					n.InsertBefore(link, c)
+					n.RemoveChild(c)
+					replaced++
 				}
+			} else {
+				walk(c)
 			}
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			walk(c)
+			c = next
 		}
 	}
-	for _, n := range nodes {
-		walk(n)
-	}
-	return found
+	return underOneParent(nodes, walk), replaced
+}
+
+// isRemote reports whether src points at the web rather than into the package.
+func isRemote(src string) bool {
+	v := strings.ToLower(strings.TrimSpace(src))
+	return strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://")
 }
 
 // AssignAnchorIDs makes the sub-headings listed in the book's table of contents

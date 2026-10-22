@@ -209,7 +209,7 @@ func TestEPUBPackageIsConsistent(t *testing.T) {
 	}
 }
 
-func TestEPUBImagesAreRenamedDroppedAndFlagged(t *testing.T) {
+func TestEPUBImagesAreRenamedDroppedAndLinked(t *testing.T) {
 	_, _, files := buildEPUB(t, testSource(t), EPUBOptions{})
 
 	// The PNG that the cache stored as .jpg is embedded under .png and the chapter follows.
@@ -231,13 +231,19 @@ func TestEPUBImagesAreRenamedDroppedAndFlagged(t *testing.T) {
 	contains(t, chapter,
 		`<img src="images/`+legacy+`.png" alt="" />`,
 		`<img src="images/`+imgRealJPG+`" alt="" />`,
-		`<img src="https://cdn.example.invalid/remote.png" alt="" />`,
 	)
 	notContains(t, chapter, "missing.jpg")
 
-	opf := string(files["EPUB/content.opf"])
-	contains(t, opf, `<item id="chap0002" href="chap_0002.xhtml" media-type="application/xhtml+xml" properties="remote-resources"/>`)
-	notContains(t, opf, `id="chap0001" href="chap_0001.xhtml" media-type="application/xhtml+xml" properties`)
+	// A picture that was never downloaded is linked: an EPUB may not embed
+	// images from the web (EPUBCheck RSC-006), not even with remote-resources.
+	contains(t, chapter, `<a href="https://cdn.example.invalid/remote.png">[图片]</a>`)
+	notContains(t, chapter, `<img src="https:`)
+	for name, data := range files {
+		if strings.HasSuffix(name, ".xhtml") {
+			notContains(t, string(data), "<img src=\"http")
+		}
+	}
+	notContains(t, string(files["EPUB/content.opf"]), "properties=\"remote-resources\"")
 }
 
 func TestEPUBChapterContent(t *testing.T) {
@@ -336,6 +342,25 @@ func TestEPUBWithoutCover(t *testing.T) {
 	assertWellFormedXML(t, "content.opf", files["EPUB/content.opf"])
 	assertWellFormedXML(t, "nav.xhtml", files["EPUB/nav.xhtml"])
 	notContains(t, string(files["EPUB/nav.xhtml"]), "cover.xhtml")
+}
+
+// An empty <title> is an error in an EPUB (EPUBCheck RSC-005), so a chapter
+// without a title is named by its number.
+func TestEPUBChapterWithoutTitleStillHasATitle(t *testing.T) {
+	src := testSource(t)
+	src.Meta.Chapters[2].Title = " "
+	src.Meta.Chapters[3].Title = ""
+	_, _, files := buildEPUB(t, src, EPUBOptions{})
+
+	contains(t, string(files["EPUB/chap_0003.xhtml"]), "<title>3</title>")
+	contains(t, string(files["EPUB/chap_0004.xhtml"]), "<title>4</title>")
+	contains(t, string(files["EPUB/nav.xhtml"]), `href="chap_0003.xhtml">3</a>`, `href="chap_0004.xhtml">4</a>`)
+	for name, data := range files {
+		if strings.HasSuffix(name, ".xhtml") {
+			notContains(t, string(data), "<title></title>", "<title> </title>")
+			assertWellFormedXML(t, name, data)
+		}
+	}
 }
 
 func TestEPUBExtraCSS(t *testing.T) {

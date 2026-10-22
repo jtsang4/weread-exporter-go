@@ -102,11 +102,13 @@ A chapter counts as captured when its `.md` is larger than 3 bytes (the Python t
 
 | Format | Package | Notes |
 | --- | --- | --- |
-| EPUB | `export/epub.go` | EPUB 3 with an EPUB 2 NCX for old readers; a cover page, a nav document built from the table of contents (levels and in-chapter anchors), images, `epub.css` plus the user's CSS. Validated with EPUBCheck. |
+| EPUB | `export/epub.go` | EPUB 3 with an EPUB 2 NCX for old readers; a cover page, a nav document built from the table of contents (levels and in-chapter anchors), images (one that could not be downloaded becomes a `[图片]` link: an EPUB may not embed pictures from the web), `epub.css` plus the user's CSS. Validated with EPUBCheck. |
 | PDF | `export/pdf.go`, `browser/pdf.go` | The book is rendered to one HTML file (`book.print.html`, written to the book's cache directory so relative image links work), and a separate headless Chrome with scripts disabled prints it with `Page.printToPDF`; the page size and margins come from the `@page` rule of `pdf.css`. |
 | MOBI | `export/mobi.go` | Converted from the EPUB with Calibre's `ebook-convert` or `kindlegen`; the converter is looked up **before** anything is captured. |
 | TXT | `export/text.go` | Plain text, chapter titles on their own line. |
 | Markdown | `export/text.go` | The whole book in one file; images are copied to `<title>.assets/`. |
+
+EPUB, PDF and TXT go through goldmark (`markdown.ToHTML`). The capture hook writes the book's text as it is drawn, so the only raw HTML in a chapter is the `<sup>…</sup>` it puts around footnote markers; any other tag-like text (`if x<y and z>w`) is book text and is rendered as text instead of being swallowed as markup. The XHTML that goes into an EPUB is serialized from a parsed tree (`markdown.SerializeXHTML`), which keeps it well-formed whatever the text contains.
 
 ## Packages
 
