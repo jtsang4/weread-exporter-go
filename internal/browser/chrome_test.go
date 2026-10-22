@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -59,30 +60,36 @@ func TestFindChromeSearch(t *testing.T) {
 	tests := []struct {
 		name   string
 		goos   string
+		host   string // the OS the case can run on ("" = any)
 		env    map[string]string
 		onPath map[string]string
 		files  []string
 		want   string
 	}{
-		{"linux PATH", "linux", nil, map[string]string{"chromium": "/usr/local/bin/chromium"}, nil, "/usr/local/bin/chromium"},
-		{"linux prefers google-chrome", "linux", nil,
+		{"linux PATH", "linux", "", nil, map[string]string{"chromium": "/usr/local/bin/chromium"}, nil, "/usr/local/bin/chromium"},
+		{"linux prefers google-chrome", "linux", "", nil,
 			map[string]string{"chromium": "/c", "google-chrome": "/g"}, nil, "/g"},
-		{"linux fixed location", "linux", nil, nil, []string{"/snap/bin/chromium"}, "/snap/bin/chromium"},
-		{"mac app bundle", "darwin", map[string]string{"HOME": "/Users/me"}, nil,
+		{"linux fixed location", "linux", "", nil, nil, []string{"/snap/bin/chromium"}, "/snap/bin/chromium"},
+		// The app bundles below are joined with the host's separator, so they
+		// only find their file on macOS.
+		{"mac app bundle", "darwin", "darwin", map[string]string{"HOME": "/Users/me"}, nil,
 			[]string{"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"},
 			"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"},
-		{"mac user applications", "darwin", map[string]string{"HOME": "/Users/me"}, nil,
+		{"mac user applications", "darwin", "darwin", map[string]string{"HOME": "/Users/me"}, nil,
 			[]string{"/Users/me/Applications/Chromium.app/Contents/MacOS/Chromium"},
 			"/Users/me/Applications/Chromium.app/Contents/MacOS/Chromium"},
-		{"mac falls back to Edge", "darwin", map[string]string{"HOME": "/Users/me"}, nil,
+		{"mac falls back to Edge", "darwin", "darwin", map[string]string{"HOME": "/Users/me"}, nil,
 			[]string{"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"},
 			"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"},
-		{"windows program files", "windows", map[string]string{"ProgramFiles": `C:\Program Files`}, nil,
+		{"windows program files", "windows", "", map[string]string{"ProgramFiles": `C:\Program Files`}, nil,
 			[]string{filepath.Join(`C:\Program Files`, "Google", "Chrome", "Application", "chrome.exe")},
 			filepath.Join(`C:\Program Files`, "Google", "Chrome", "Application", "chrome.exe")},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			if tc.host != "" && tc.host != runtime.GOOS {
+				t.Skipf("the %s candidates are built for the %s host", tc.goos, tc.host)
+			}
 			got, err := fakeFinder(tc.goos, tc.env, tc.onPath, tc.files...).find("")
 			if err != nil || got != tc.want {
 				t.Fatalf("got %q, %v; want %q", got, err, tc.want)
@@ -135,6 +142,28 @@ func TestParseMajorVersion(t *testing.T) {
 	for _, bad := range []string{"", "no digits here", "version 12"} {
 		if _, err := parseMajorVersion(bad); err == nil {
 			t.Errorf("parseMajorVersion(%q) should fail", bad)
+		}
+	}
+}
+
+func TestMajorVersionFromInstallDir(t *testing.T) {
+	tests := map[string]int{
+		// filepath.Join keeps the case portable: the separators follow the host.
+		filepath.Join(`C:\Program Files`, "Google", "Chrome", "Application", "155.0.8059.86", "chrome.exe"): 155,
+		filepath.Join("/opt/google/chrome", "120.0.6099.109", "chrome"):                                     120,
+	}
+	for path, want := range tests {
+		if got, ok := majorVersionFromInstallDir(path); !ok || got != want {
+			t.Errorf("majorVersionFromInstallDir(%q) = %d, %v; want %d", path, got, ok, want)
+		}
+	}
+	for _, path := range []string{
+		"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+		"chrome.exe",
+		"",
+	} {
+		if got, ok := majorVersionFromInstallDir(path); ok {
+			t.Errorf("majorVersionFromInstallDir(%q) = %d, should have failed", path, got)
 		}
 	}
 }

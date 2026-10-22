@@ -322,19 +322,35 @@ func (s *Session) opTimeout(ctx context.Context, d time.Duration) (context.Conte
 func (s *Session) evalBool(ctx context.Context, expr string) (bool, error) {
 	c, cancel := s.opTimeout(ctx, s.opts.StepTimeout)
 	defer cancel()
-	return chromedp.Run(c, chromedp.Evaluate[bool](expr))
+	ok, err := chromedp.Run(c, chromedp.Evaluate[bool](expr))
+	return ok, contextErr(ctx, err)
 }
 
 func (s *Session) evalString(ctx context.Context, expr string) (string, error) {
 	c, cancel := s.opTimeout(ctx, s.opts.StepTimeout)
 	defer cancel()
-	return chromedp.Run(c, chromedp.Evaluate[string](expr))
+	str, err := chromedp.Run(c, chromedp.Evaluate[string](expr))
+	return str, contextErr(ctx, err)
 }
 
 func (s *Session) evalVoid(ctx context.Context, expr string) error {
 	c, cancel := s.opTimeout(ctx, s.opts.StepTimeout)
 	defer cancel()
-	return chromedp.Do(c, chromedp.Evaluate[chromedp.Void](expr))
+	return contextErr(ctx, chromedp.Do(c, chromedp.Evaluate[chromedp.Void](expr)))
+}
+
+// contextErr prefers the error of the caller's context over the generic
+// "context canceled" chromedp reports when an operation's context ends: a
+// deadline that ran out must still look like context.DeadlineExceeded, which
+// is what the capture loop acts on. Windows surfaces the cancellation first.
+func contextErr(ctx context.Context, err error) error {
+	if err == nil {
+		return nil
+	}
+	if cerr := ctx.Err(); cerr != nil {
+		return cerr
+	}
+	return err
 }
 
 // waitFor polls a boolean JavaScript expression until it is true. It reports
@@ -529,7 +545,7 @@ func (s *Session) Navigate(ctx context.Context, url string, timeout time.Duratio
 	c, cancel := s.opTimeout(ctx, timeout)
 	defer cancel()
 	if err := chromedp.Do(c, chromedp.Navigate(url)); err != nil {
-		return fmt.Errorf("browser: open %s: %w", url, err)
+		return fmt.Errorf("browser: open %s: %w", url, contextErr(ctx, err))
 	}
 	return nil
 }

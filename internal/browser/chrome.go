@@ -150,15 +150,36 @@ func (f chromeFinder) candidates() (names, paths []string) {
 var versionPattern = regexp.MustCompile(`(\d+)\.\d+\.\d+\.\d+`)
 
 // ChromeMajorVersion returns the major version of the browser at path (for
-// example 155), by running "<path> --version".
+// example 155), by running "<path> --version". While another Chrome is running,
+// Windows prints "Opening in existing browser session." instead, so the
+// versioned directory next to the executable is the fallback.
 func ChromeMajorVersion(ctx context.Context, path string) (int, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	out, err := exec.CommandContext(ctx, path, "--version").Output()
-	if err != nil {
-		return 0, fmt.Errorf("browser: run %s --version: %w", path, err)
+	out, runErr := exec.CommandContext(ctx, path, "--version").Output()
+	v, parseErr := parseMajorVersion(string(out))
+	if parseErr == nil {
+		return v, nil
 	}
-	return parseMajorVersion(string(out))
+	if dirV, ok := majorVersionFromInstallDir(path); ok {
+		return dirV, nil
+	}
+	if runErr != nil {
+		return 0, fmt.Errorf("browser: run %s --version: %w", path, runErr)
+	}
+	return 0, parseErr
+}
+
+// majorVersionFromInstallDir reads the major version from the versioned
+// directory Chrome keeps next to its executable, as in
+// ".../Google/Chrome/Application/155.0.8059.86/chrome.exe".
+func majorVersionFromInstallDir(path string) (int, bool) {
+	m := versionPattern.FindStringSubmatch(filepath.Base(filepath.Dir(path)))
+	if m == nil {
+		return 0, false
+	}
+	v, err := strconv.Atoi(m[1])
+	return v, err == nil
 }
 
 func parseMajorVersion(output string) (int, error) {
