@@ -1,0 +1,51 @@
+name: Release
+
+# Pushing a tag such as v1.2.3 builds the binaries of every platform with
+# GoReleaser and publishes them as a GitHub release (see .goreleaser.yaml).
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release and upload the files
+      id-token: write # sign the build provenance
+      attestations: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # the changelog needs the history and the previous tag
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      # The browser tests run in CI for every commit; do not publish a tag that
+      # does not at least pass the tests that need no browser.
+      - name: Test
+        run: go test -short -count=1 ./...
+
+      - name: GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attest the build provenance of the release files
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-checksums: dist/checksums.txt

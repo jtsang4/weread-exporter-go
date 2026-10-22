@@ -1,0 +1,132 @@
+# GoReleaser configuration: https://goreleaser.com/customization/
+#
+# A release is made by pushing a tag (see .github/workflows/release.yml):
+#
+#   git tag -a v1.2.3 -m "v1.2.3" && git push origin v1.2.3
+#
+# Try it locally without publishing anything:
+#
+#   make snapshot      # goreleaser release --snapshot --clean
+#
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: weread-exporter
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: weread-exporter
+    main: ./cmd/weread-exporter
+    binary: weread-exporter
+    # The program needs no C code, so every platform is cross-compiled from one
+    # machine, and the binaries are fully static on Linux.
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/jtsang4/weread-exporter-go/internal/version.Version=v{{ .Version }}
+      - -X github.com/jtsang4/weread-exporter-go/internal/version.Commit={{ .FullCommit }}
+      - -X github.com/jtsang4/weread-exporter-go/internal/version.Date={{ .Date }}
+      - -X github.com/jtsang4/weread-exporter-go/internal/version.BuiltBy=goreleaser
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: weread-exporter
+    ids:
+      - weread-exporter
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+      - README.en.md
+      - CHANGELOG.md
+
+nfpms:
+  - id: packages
+    ids:
+      - weread-exporter
+    package_name: weread-exporter
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    vendor: weread-exporter-go
+    homepage: https://github.com/jtsang4/weread-exporter-go
+    maintainer: jtsang4 <https://github.com/jtsang4>
+    description: Export WeChat Read (微信读书) books to EPUB, PDF, MOBI, TXT and Markdown.
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    # The program drives a browser; it is not a hard dependency because Chrome
+    # is not packaged for every distribution (and --chrome-path can point to any).
+    recommends:
+      - chromium
+    contents:
+      - src: ./LICENSE
+        dst: /usr/share/doc/weread-exporter/LICENSE
+      - src: ./README.md
+        dst: /usr/share/doc/weread-exporter/README.md
+      - src: ./README.en.md
+        dst: /usr/share/doc/weread-exporter/README.en.md
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]-]+\))?!?:.+$'
+      order: 0
+    - title: Bug fixes
+      regexp: '^.*?fix(\([[:word:]-]+\))?!?:.+$'
+      order: 1
+    - title: Performance
+      regexp: '^.*?perf(\([[:word:]-]+\))?!?:.+$'
+      order: 2
+    - title: Other changes
+      order: 999
+  filters:
+    exclude:
+      - '^docs?(\([[:word:]-]+\))?:'
+      - '^test(\([[:word:]-]+\))?:'
+      - '^chore(\([[:word:]-]+\))?:'
+      - '^ci(\([[:word:]-]+\))?:'
+      - '^style(\([[:word:]-]+\))?:'
+      - "^Merge "
+
+release:
+  github:
+    owner: jtsang4
+    name: weread-exporter-go
+  # v1.0.0-rc.1 and the like are marked as pre-releases.
+  prerelease: auto
+  name_template: "{{ .Tag }}"
+  footer: |
+    ## Install
+
+    Download the archive for your system, unpack it, and run `weread-exporter`.
+    The program needs Google Chrome, Chromium or Microsoft Edge on the machine.
+    Verify a download with `checksums.txt` (SHA-256).
+
+    With a Go toolchain: `go install github.com/jtsang4/weread-exporter-go/cmd/weread-exporter@{{ .Tag }}`

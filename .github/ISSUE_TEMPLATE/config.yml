@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting guide / 常见问题
+    url: https://github.com/jtsang4/weread-exporter-go/blob/main/docs/troubleshooting.md
+    about: Many problems (login, reader mode, Chrome, rate limits) are explained there.
+  - name: Report a security problem / 安全问题
+    url: https://github.com/jtsang4/weread-exporter-go/security/advisories/new
+    about: Please report vulnerabilities privately, not in a public issue.

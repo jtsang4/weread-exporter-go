@@ -1,0 +1,55 @@
+name: Bug report / 问题反馈
+description: Something does not work as documented / 与文档描述不符，或者导出失败
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. Please read the
+        [troubleshooting guide](https://github.com/jtsang4/weread-exporter-go/blob/main/docs/troubleshooting.md) first.
+
+        **Never paste your cookies** (the content of `cookie.txt`, a `Cookie:` header) or the text of
+        copyrighted books. Remove them from logs before you post them. / 请不要贴出 cookie 文件内容，也不要贴出书籍正文。
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? / 发生了什么
+      description: What did you run, what did you expect, what did you get instead?
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command / 执行的命令
+      description: The exact command line (the book id is fine to include).
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log / 日志
+      description: |
+        The output of the command, ideally with `-v`. The log never contains cookie values, but check it before you post.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: version
+    attributes:
+      label: Version and system / 版本与系统
+      description: The output of `weread-exporter version`, and your operating system and Chrome version.
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: reader-mode
+    attributes:
+      label: Reader mode of the account / 账号的阅读模式
+      description: The output of `weread-exporter reader-mode` (before the export).
+      options:
+        - horizontal (左右翻页)
+        - vertical (上下滚动)
+        - unknown
+    validations:
+      required: false

@@ -1,0 +1,30 @@
+name: Feature request / 功能建议
+description: Suggest an idea / 提出新想法
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What do you want to do? / 想解决什么问题
+      description: Describe the problem, not only the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal / 建议的做法
+      description: How should it work? Command line flags, output, examples.
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives / 其他办法
+      description: What did you try or consider?
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: |
+        Requests that make the tool read faster, hide that a browser is used, or get around WeRead's limits
+        (paid chapters, rate limits) are out of scope; see the notes on responsible use in the README.
