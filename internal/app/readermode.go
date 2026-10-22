@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"github.com/jtsang4/weread-exporter-go/internal/fsutil"
@@ -235,9 +236,13 @@ func (e *Exporter) RestoreReaderMode(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-// probeBooks are the books whose reader page tells the account's reader mode:
+// maxCachedProbes bounds the extra requests made when neither the book being
+// exported nor the default probe book can be read.
+const maxCachedProbes = 3
+
+// primaryProbeBooks are the first choices for reading the account's reader mode:
 // the book being exported, if any, and the default.
-func (e *Exporter) probeBooks() []string {
+func (e *Exporter) primaryProbeBooks() []string {
 	var ids []string
 	if ref, err := weread.ParseRef(e.cfg.BookRef); err == nil && ref.Kind == weread.RefBook {
 		ids = append(ids, ref.ID)
@@ -248,5 +253,41 @@ func (e *Exporter) probeBooks() []string {
 	return ids
 }
 
+// probeBooks are the books whose reader page tells the account's reader mode:
+// the primary ones, then a few books that were exported before. Those pages
+// certainly existed once, which keeps `reader-mode restore` usable even if
+// WeRead takes the default book off.
+func (e *Exporter) probeBooks() []string {
+	ids := e.primaryProbeBooks()
+	for _, id := range e.cachedBooks(maxCachedProbes) {
+		if !slices.Contains(ids, id) {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+// cachedBooks returns the ids of up to n books that have a description in the
+// cache directory.
+func (e *Exporter) cachedBooks(n int) []string {
+	entries, err := os.ReadDir(e.cfg.CacheDir)
+	if err != nil {
+		return nil
+	}
+	var ids []string
+	for _, entry := range entries {
+		if len(ids) == n {
+			break
+		}
+		if !entry.IsDir() || !fsutil.IsFile(filepath.Join(e.cfg.CacheDir, entry.Name(), "meta.json")) {
+			continue
+		}
+		if ref, err := weread.ParseRef(entry.Name()); err == nil && ref.Kind == weread.RefBook {
+			ids = append(ids, ref.ID)
+		}
+	}
+	return ids
+}
+
 // probeBook is the book a page is opened for when no particular book is needed.
-func (e *Exporter) probeBook() string { return e.probeBooks()[0] }
+func (e *Exporter) probeBook() string { return e.primaryProbeBooks()[0] }

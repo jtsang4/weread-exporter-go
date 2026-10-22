@@ -241,6 +241,58 @@ func TestReaderModeFallsBackToTheDefaultProbeBook(t *testing.T) {
 	}
 }
 
+// cacheBook makes the cache directory look as if the book had been exported.
+func (h *harness) cacheBook(id string) {
+	h.t.Helper()
+	dir := filepath.Join(h.cacheDir(), id)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		h.t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "meta.json"), []byte("{}"), 0o644); err != nil {
+		h.t.Fatal(err)
+	}
+}
+
+func TestReaderModeFallsBackToBooksThatWereExportedBefore(t *testing.T) {
+	h := newHarness(t)
+	// The site no longer knows the default probe book, but a book that was
+	// exported earlier is still there: `reader-mode restore` must keep working.
+	cachedID := weread.MustHash("8888888")
+	h.site.AddBook(fakesite.Book{ID: cachedID, Title: "Cached", Chapters: []fakesite.Chapter{{UID: 1, Title: "x"}}})
+	h.cacheBook(cachedID)
+	// Directories without a description (the dumps of failed captures, a book
+	// that was never described) are not probed.
+	for _, name := range []string{"diagnostics", weread.MustHash("9999999")} {
+		if err := os.MkdirAll(filepath.Join(h.cacheDir(), name), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	h.cfg.BookRef = ""
+	e := h.exporter()
+	if got := e.probeBooks(); len(got) != 2 || got[0] != probeBookID || got[1] != cachedID {
+		t.Fatalf("probe books = %v", got)
+	}
+	status, err := e.ReaderMode(context.Background())
+	if err != nil || status.Mode != weread.ReaderModeHorizontal {
+		t.Fatalf("status = %+v, %v", status, err)
+	}
+	if got := e.probeBook(); got != probeBookID {
+		t.Fatalf("probe book = %v; a cached book must not become the first choice", got)
+	}
+}
+
+func TestCachedProbeBooksAreBounded(t *testing.T) {
+	h := newHarness(t)
+	h.cfg.BookRef = ""
+	for _, n := range []string{"1000001", "1000002", "1000003", "1000004", "1000005"} {
+		h.cacheBook(weread.MustHash(n))
+	}
+	if got := h.exporter().probeBooks(); len(got) != 1+maxCachedProbes {
+		t.Fatalf("probe books = %v; want the default and %d cached ones", got, maxCachedProbes)
+	}
+}
+
 func TestReaderModeFailsWhenNoProbeBookWorks(t *testing.T) {
 	h := newHarness(t)
 	h.cfg.BookRef = weread.MustHash("7777777")
