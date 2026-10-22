@@ -20,8 +20,8 @@ import (
 	"github.com/jtsang4/weread-exporter-go/internal/fakesite"
 )
 
-// The tests in this file drive a real headless Chrome against fakeSite. They are
-// skipped when no Chrome is installed.
+// The tests in this file drive a real headless Chrome against the fake site.
+// They are skipped with -short and when no Chrome is installed.
 
 type lockedBuffer struct {
 	mu  sync.Mutex
@@ -53,11 +53,14 @@ func testLogger(t *testing.T) (*slog.Logger, *lockedBuffer) {
 	return slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{Level: slog.LevelDebug})), buf
 }
 
-// requireChrome skips the test when no Chrome is installed, unless
-// WEREAD_TEST_REQUIRE_CHROME is set (CI does): then a missing browser is an
-// error, so the browser tests cannot be skipped by accident.
+// requireChrome skips the test with -short and when no Chrome is installed,
+// unless WEREAD_TEST_REQUIRE_CHROME is set (CI does): then a missing browser is
+// an error, so the browser tests cannot be skipped by accident.
 func requireChrome(t *testing.T) {
 	t.Helper()
+	if testing.Short() {
+		t.Skip("browser tests are skipped with -short")
+	}
 	if _, err := FindChrome(""); err != nil {
 		if os.Getenv("WEREAD_TEST_REQUIRE_CHROME") != "" {
 			t.Fatalf("Chrome is required (WEREAD_TEST_REQUIRE_CHROME is set): %v", err)
