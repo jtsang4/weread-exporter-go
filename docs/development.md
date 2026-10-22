@@ -52,6 +52,16 @@ Run one test: `go test ./internal/app -run TestRunWithCustomCSS -v -count=1`.
 - A test that starts Chrome should use `NoSandbox: true` and a short timeout; look at `testOptions` in `internal/browser/integration_test.go`.
 - If a test run is killed, Chrome processes may be left behind; they run with a temporary `--user-data-dir` named `chromedp-runner…`. Kill exactly those (`pkill -f chromedp-runner`), not every Chrome.
 
+### Fuzzing
+
+The parsers of outside input have fuzz tests: `FuzzToXHTML` (`internal/markdown`: chapter Markdown to the XHTML of an EPUB), `FuzzFormatFilename` (`internal/book`), `FuzzParseChapterSpec` (`internal/app`), `FuzzParseRef` and `FuzzParsePages` (`internal/weread`: the pages the site sends). Their seeds run with every `go test`. To look for new inputs:
+
+```bash
+go test ./internal/weread -run '^$' -fuzz FuzzParsePages -fuzztime 60s
+```
+
+`.github/workflows/fuzz.yml` does that for all of them once a week. A failing input is written to `testdata/fuzz/<name>/` next to the test: commit it and it becomes a regression test.
+
 ### Golden files
 
 `testdata/wr_hash_golden.json` and `testdata/normalize_golden.json` were produced by the original Python code (copied verbatim into `testdata/generators/`):

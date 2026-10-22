@@ -1,0 +1,56 @@
+name: Fuzz
+
+# The parsers of what comes from outside (pages sent by the site, the command
+# line, book titles, the text of a book) are fuzzed once a week. The seeds of
+# every fuzz test also run as ordinary tests in CI; this job looks for new
+# inputs. A failing input is written to testdata/fuzz/ and uploaded: copy it
+# into the repository to turn it into a regression test.
+
+on:
+  schedule:
+    - cron: "17 3 * * 1" # Mondays, 03:17 UTC
+  workflow_dispatch:
+    inputs:
+      fuzztime:
+        description: How long to fuzz every target (go test -fuzztime)
+        default: 60s
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: FuzzToXHTML, package: ./internal/markdown }
+          - { target: FuzzFormatFilename, package: ./internal/book }
+          - { target: FuzzParseChapterSpec, package: ./internal/app }
+          - { target: FuzzParseRef, package: ./internal/weread }
+          - { target: FuzzParsePages, package: ./internal/weread }
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          check-latest: true
+
+      - name: Fuzz
+        env:
+          FUZZTIME: ${{ inputs.fuzztime || '60s' }}
+          TARGET: ${{ matrix.target }}
+          PACKAGE: ${{ matrix.package }}
+        run: go test "$PACKAGE" -run '^$' -fuzz "^${TARGET}\$" -fuzztime "$FUZZTIME"
+
+      - name: Keep the failing inputs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-${{ matrix.target }}
+          path: internal/**/testdata/fuzz/**
+          if-no-files-found: ignore

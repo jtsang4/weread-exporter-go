@@ -43,7 +43,7 @@ Tools: golangci-lint v2 (version pinned in `.github/workflows/ci.yml`), optional
 | `testdata` | golden files produced by the Python original, and their generators |
 | `docs` | architecture, development and troubleshooting guides |
 | `scripts` | `notices.sh` (writes `THIRD_PARTY_NOTICES.md`), `completions.sh` (used by GoReleaser) |
-| `.github`, `.goreleaser.yaml` | CI, release and CodeQL workflows, dependabot, issue forms, the release pipeline |
+| `.github`, `.goreleaser.yaml` | CI, release, CodeQL and fuzz workflows, dependabot, issue forms, the release pipeline |
 
 ## Invariants: do not break these
 
@@ -80,11 +80,13 @@ Tools: golangci-lint v2 (version pinned in `.github/workflows/ci.yml`), optional
 
 When the site, a flag, or the capture changes: extend `internal/fakesite`, write the test against it, then (only if needed) do a tiny live check as described in [docs/development.md](docs/development.md).
 
+The parsers of outside input (`FuzzToXHTML`, `FuzzFormatFilename`, `FuzzParseChapterSpec`, `FuzzParseRef`, `FuzzParsePages`) have fuzz tests whose seeds run with `go test`; after changing one of those parsers fuzz it for a while (`go test ./internal/weread -run '^$' -fuzz FuzzParsePages -fuzztime 30s`) and commit a failing input from `testdata/fuzz/` as a regression test. CI fuzzes every target weekly (`fuzz.yml`).
+
 Regenerate golden files only on purpose: `python3 testdata/generators/wr_hash.py > testdata/wr_hash_golden.json`, `python3 testdata/generators/normalize.py > testdata/normalize_golden.json`.
 
 ## Release
 
-Tag `vX.Y.Z` on `main` and push the tag: `.github/workflows/release.yml` runs GoReleaser (`.goreleaser.yaml`): archives, `.deb`/`.rpm`, `checksums.txt`, GitHub release notes, provenance attestation. Move the `[Unreleased]` entries of `CHANGELOG.md` under the new version first. Check locally with `make snapshot`. CI is `.github/workflows/ci.yml` (lint on the minimum Go of `go.mod`, tests on Linux/macOS/Windows and builds with the newest Go, a test job on the minimum Go, GoReleaser check, govulncheck) and `codeql.yml`; golangci-lint cannot read the standard library of a Go release newer than its own build, so the lint job stays on the minimum. Do not push tags or branches unless the maintainer asked for it.
+Tag `vX.Y.Z` on `main` and push the tag: `.github/workflows/release.yml` runs GoReleaser (`.goreleaser.yaml`): archives, `.deb`/`.rpm`, `checksums.txt`, GitHub release notes, provenance attestation. Move the `[Unreleased]` entries of `CHANGELOG.md` under the new version first. Check locally with `make snapshot`. CI is `.github/workflows/ci.yml` (lint on the minimum Go of `go.mod`, tests on Linux/macOS/Windows and builds with the newest Go, a test job on the minimum Go, GoReleaser check, govulncheck), `codeql.yml` and `fuzz.yml` (weekly); golangci-lint cannot read the standard library of a Go release newer than its own build, so the lint job stays on the minimum. Do not push tags or branches unless the maintainer asked for it.
 
 ## Gotchas
 
