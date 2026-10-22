@@ -8,6 +8,7 @@ cookie*.json
 # ---- Build artifacts ----
 /bin/
 /dist/
+/completions/
 /weread-exporter
 /weread-exporter.exe
 *.test

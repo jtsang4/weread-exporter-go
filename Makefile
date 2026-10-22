@@ -88,8 +88,24 @@ tidy-check: ## Fail if go.mod or go.sum need tidying
 	mv go.mod.orig go.mod; mv go.sum.orig go.sum; \
 	exit $$status
 
+.PHONY: notices
+notices: ## Regenerate THIRD_PARTY_NOTICES.md (after the dependencies changed)
+	sh scripts/notices.sh
+
+.PHONY: notices-check
+notices-check: ## Fail if THIRD_PARTY_NOTICES.md is out of date
+	@tmp="$$(mktemp)"; \
+	sh scripts/notices.sh "$$tmp" 2>/dev/null || { rm -f "$$tmp"; exit 1; }; \
+	if cmp -s "$$tmp" THIRD_PARTY_NOTICES.md; then rm -f "$$tmp"; else \
+		rm -f "$$tmp"; echo "THIRD_PARTY_NOTICES.md is out of date: run 'make notices'"; exit 1; \
+	fi
+
+.PHONY: completions
+completions: ## Write the shell completion scripts into completions/
+	sh scripts/completions.sh
+
 .PHONY: check
-check: fmt-check vet lint test-race ## Everything CI checks: format, vet, lint, tests with -race
+check: fmt-check tidy-check vet lint notices-check test-race ## Everything CI checks: format, tidy, vet, lint, notices, tests with -race
 
 .PHONY: cross
 cross: ## Cross-compile for every release platform into dist/
@@ -112,4 +128,4 @@ release-check: ## Validate .goreleaser.yaml (needs goreleaser)
 
 .PHONY: clean
 clean: ## Remove build output
-	rm -rf bin dist coverage.txt coverage.html
+	rm -rf bin dist completions coverage.txt coverage.html

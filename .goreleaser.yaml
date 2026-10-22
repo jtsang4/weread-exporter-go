@@ -16,6 +16,8 @@ project_name: weread-exporter
 before:
   hooks:
     - go mod download
+    # completions/weread-exporter.{bash,zsh,fish,powershell} for the archives and packages
+    - sh scripts/completions.sh
 
 builds:
   - id: weread-exporter
@@ -55,9 +57,11 @@ archives:
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - LICENSE
+      - THIRD_PARTY_NOTICES.md
       - README.md
       - README.en.md
       - CHANGELOG.md
+      - completions/*
 
 nfpms:
   - id: packages
@@ -68,6 +72,7 @@ nfpms:
     vendor: weread-exporter-go
     homepage: https://github.com/jtsang4/weread-exporter-go
     maintainer: jtsang4 <https://github.com/jtsang4>
+    section: utils
     description: Export WeChat Read (微信读书) books to EPUB, PDF, MOBI, TXT and Markdown.
     license: MIT
     formats:
@@ -80,10 +85,18 @@ nfpms:
     contents:
       - src: ./LICENSE
         dst: /usr/share/doc/weread-exporter/LICENSE
+      - src: ./THIRD_PARTY_NOTICES.md
+        dst: /usr/share/doc/weread-exporter/THIRD_PARTY_NOTICES.md
       - src: ./README.md
         dst: /usr/share/doc/weread-exporter/README.md
       - src: ./README.en.md
         dst: /usr/share/doc/weread-exporter/README.en.md
+      - src: ./completions/weread-exporter.bash
+        dst: /usr/share/bash-completion/completions/weread-exporter
+      - src: ./completions/weread-exporter.zsh
+        dst: /usr/share/zsh/site-functions/_weread-exporter
+      - src: ./completions/weread-exporter.fish
+        dst: /usr/share/fish/vendor_completions.d/weread-exporter.fish
 
 checksum:
   name_template: checksums.txt
