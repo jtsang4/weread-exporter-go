@@ -6,11 +6,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-### Fixed
-
-- Chrome on Windows: the version is still detected when another Chrome is already running (`chrome --version` then only prints "Opening in existing browser session."), so `--mock-user-agent` and the startup log no longer report version 0.
-- A capture that runs into its deadline is reported as a timeout on Windows as well, instead of a plain "context canceled".
-
 ## [0.3.0] - 2026-10-22
 
 First release of the Go rewrite of [drunkdream/weread-exporter](https://github.com/drunkdream/weread-exporter).
@@ -32,6 +27,11 @@ First release of the Go rewrite of [drunkdream/weread-exporter](https://github.c
 - Releases for Linux, macOS and Windows on amd64 and arm64 (archives, checksums, `.deb` and `.rpm` packages) built by GoReleaser in GitHub Actions; CI with lint (ShellCheck and actionlint included), tests on three operating systems, EPUBCheck validation of the generated EPUBs, cross-compilation, CodeQL, govulncheck and weekly fuzzing of the parsers.
 - Shell completions (bash, zsh, fish, PowerShell) and the third-party license notices in every archive; the packages install them.
 - Documentation in Chinese and English, notes for contributors and for AI coding agents.
+
+### Fixed
+
+- Chrome on Windows: the version is still detected when another Chrome is already running (`chrome --version` then only prints "Opening in existing browser session."), so `--mock-user-agent` and the startup log no longer report version 0.
+- A capture that runs into its deadline is reported as a timeout on Windows as well, instead of a plain "context canceled".
 
 ### Changed
 
