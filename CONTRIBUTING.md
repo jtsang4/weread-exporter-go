@@ -41,7 +41,7 @@ make check          # gofmt, go vet, golangci-lint and go test -race: what CI ru
 
 1. Fork, create a branch from `main`, make one logical change.
 2. Add tests. Everything that touches the browser or the site can be tested without an account with the fake site in `internal/fakesite`; tests must never contact weread.qq.com.
-3. Run `make check`.
+3. Run `make check`. If you changed the dependencies, run `make tidy notices` too.
 4. If you changed capturing, login or the reader mode, also try it against the real site **with low volume** (one or two free chapters, the default pause between chapters), and check with `weread-exporter reader-mode` that your account's reader mode is as it was. Say in the pull request what you tried.
 5. Update the documentation that is affected: `README.md` and `README.en.md` (both), the flag tables against `weread-exporter --help`, `docs/`, and `CHANGELOG.md` under `[Unreleased]`.
 6. Write commit messages in the [Conventional Commits](https://www.conventionalcommits.org/) style (`feat(export): …`, `fix(browser): …`, `docs: …`); the release notes are generated from them.

@@ -21,6 +21,7 @@ First release of the Go rewrite of [drunkdream/weread-exporter](https://github.c
 - Atomic writes of every output file; existing outputs are kept unless `--overwrite` is given.
 - `--headless`, `--no-sandbox`, `--user-data-dir`, `--proxy-server`, `--css-file`, `--mobi-converter`, `--log-format json` and more; see `--help`.
 - Releases for Linux, macOS and Windows on amd64 and arm64 (archives, checksums, `.deb` and `.rpm` packages) built by GoReleaser in GitHub Actions; CI with lint, tests on three operating systems, cross-compilation, CodeQL and govulncheck.
+- Shell completions (bash, zsh, fish, PowerShell) and the third-party license notices in every archive; the packages install them.
 - Documentation in Chinese and English, notes for contributors and for AI coding agents.
 
 ### Changed

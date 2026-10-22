@@ -27,7 +27,7 @@ This is a Go rewrite of [drunkdream/weread-exporter](https://github.com/drunkdre
 
 ### Download a binary (recommended)
 
-Download the archive for your system from [Releases](https://github.com/jtsang4/weread-exporter-go/releases) (`linux`, `darwin` (macOS) or `windows`, on `amd64` or `arm64`), unpack it and run `weread-exporter` (`weread-exporter.exe` on Windows). Verify the download against `checksums.txt` (SHA-256). `.deb` and `.rpm` packages are provided for Linux.
+Download the archive for your system from [Releases](https://github.com/jtsang4/weread-exporter-go/releases) (`linux`, `darwin` (macOS) or `windows`, on `amd64` or `arm64`), unpack it and run `weread-exporter` (`weread-exporter.exe` on Windows). Verify the download against `checksums.txt` (SHA-256). `.deb` and `.rpm` packages are provided for Linux (they install the bash, zsh and fish completions). The archives also contain `completions/` and `THIRD_PARTY_NOTICES.md` (the licenses of the third-party software); you can generate the completion script yourself with `weread-exporter completion bash|zsh|fish|powershell`.
 
 If macOS blocks the downloaded binary, run `xattr -d com.apple.quarantine weread-exporter`.
 

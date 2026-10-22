@@ -27,7 +27,7 @@
 
 ### 下载预编译文件（推荐）
 
-到 [Releases](https://github.com/jtsang4/weread-exporter-go/releases) 下载对应系统的压缩包（`linux` / `darwin`(macOS) / `windows` × `amd64` / `arm64`），解压后得到 `weread-exporter`（Windows 为 `weread-exporter.exe`）。用 `checksums.txt`（SHA-256）校验下载。Linux 另提供 `.deb` 和 `.rpm` 包。
+到 [Releases](https://github.com/jtsang4/weread-exporter-go/releases) 下载对应系统的压缩包（`linux` / `darwin`(macOS) / `windows` × `amd64` / `arm64`），解压后得到 `weread-exporter`（Windows 为 `weread-exporter.exe`）。用 `checksums.txt`（SHA-256）校验下载。Linux 另提供 `.deb` 和 `.rpm` 包（会安装 bash、zsh、fish 的命令补全）。压缩包里还有 `completions/`（命令补全脚本）和 `THIRD_PARTY_NOTICES.md`（第三方软件的许可证）；也可以自己生成补全脚本：`weread-exporter completion bash|zsh|fish|powershell`。
 
 macOS 下载后如果被系统拦截，执行 `xattr -d com.apple.quarantine weread-exporter`。
 

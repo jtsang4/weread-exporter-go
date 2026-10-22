@@ -12,10 +12,11 @@ Single binary, `CGO_ENABLED=0`, Go 1.26+ (see `go.mod`), module `github.com/jtsa
 
 ```bash
 make build                  # bin/weread-exporter
-make check                  # gofmt -s check, go vet, golangci-lint, go test -race ./...   (run before every commit)
+make check                  # gofmt -s, go mod tidy, go vet, golangci-lint, notices, go test -race ./...   (run before every commit)
 make test-short             # no browser needed, seconds
 make test                   # all tests; browser tests need Chrome/Chromium/Edge
 make cross                  # the six release platforms into dist/
+make tidy notices           # after changing dependencies: go.mod/go.sum and THIRD_PARTY_NOTICES.md
 make snapshot               # complete GoReleaser build without publishing
 make run ARGS="info -b 34336681"
 go test ./internal/app -run TestRunWithCustomCSS -v -count=1      # one test
@@ -40,6 +41,8 @@ Tools: golangci-lint v2 (version pinned in `.github/workflows/ci.yml`), optional
 | `internal/fakesite` | a fake WeRead (httptest server) for the tests |
 | `internal/version` | build information set through linker flags |
 | `testdata` | golden files produced by the Python original, and their generators |
+| `scripts` | `notices.sh` (writes `THIRD_PARTY_NOTICES.md`), `completions.sh` (used by GoReleaser) |
+| `.github`, `.goreleaser.yaml` | CI, release and CodeQL workflows, dependabot, issue forms, the release pipeline |
 
 ## Invariants: do not break these
 
@@ -51,7 +54,7 @@ Tools: golangci-lint v2 (version pinned in `.github/workflows/ci.yml`), optional
 6. **stdout is for results, stderr is for logs.** stdout carries only the paths of written files, tables and JSON, so that it can be piped. Exit statuses: 0 ok, 1 failed, 2 usage/configuration, 3 login needed, 130 interrupted.
 7. **Nothing waits forever or retries forever.** Every blocking call takes a `context.Context`; retries are bounded (3 attempts per chapter, 3 browser restarts per book, 2 login rounds, 1 reader mode round); cleanup after a cancellation runs on a context without the cancellation (`detached`) with its own timeout. Goroutines end when the context ends; run `go test -race`.
 8. **Python-compatible text.** The id hash and `markdown.Normalize` are pinned by golden files made by the original code. Do not "improve" them without regenerating the files and saying so in the commit message.
-9. **Pure Go.** The build must work with `CGO_ENABLED=0` for all six platforms; think twice before adding a dependency.
+9. **Pure Go.** The build must work with `CGO_ENABLED=0` for all six platforms; think twice before adding a dependency, and run `make tidy notices` when you do (the notices ship with every binary because BSD and Apache licenses require it).
 
 ## Conventions
 
@@ -79,7 +82,7 @@ Regenerate golden files only on purpose: `python3 testdata/generators/wr_hash.py
 
 ## Release
 
-Tag `vX.Y.Z` on `main` and push the tag: `.github/workflows/release.yml` runs GoReleaser (`.goreleaser.yaml`): archives, `.deb`/`.rpm`, `checksums.txt`, GitHub release notes, provenance attestation. Move the `[Unreleased]` entries of `CHANGELOG.md` under the new version first. Check locally with `make snapshot`. CI is `.github/workflows/ci.yml` (lint, tests on Linux/macOS/Windows, cross-builds, GoReleaser check, govulncheck) and `codeql.yml`. Do not push tags or branches unless the maintainer asked for it.
+Tag `vX.Y.Z` on `main` and push the tag: `.github/workflows/release.yml` runs GoReleaser (`.goreleaser.yaml`): archives, `.deb`/`.rpm`, `checksums.txt`, GitHub release notes, provenance attestation. Move the `[Unreleased]` entries of `CHANGELOG.md` under the new version first. Check locally with `make snapshot`. CI is `.github/workflows/ci.yml` (lint on the minimum Go of `go.mod`, tests on Linux/macOS/Windows and builds with the newest Go, a test job on the minimum Go, GoReleaser check, govulncheck) and `codeql.yml`; golangci-lint cannot read the standard library of a Go release newer than its own build, so the lint job stays on the minimum. Do not push tags or branches unless the maintainer asked for it.
 
 ## Gotchas
 

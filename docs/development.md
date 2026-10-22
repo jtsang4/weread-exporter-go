@@ -6,11 +6,11 @@ How to build, test, debug and release weread-exporter. Read [architecture.md](ar
 
 You need
 
-- Go 1.26 or later (`go.mod` says which),
+- Go 1.26 or later (`go.mod` says which; CI also runs everything with the newest Go release),
 - Chrome, Chromium or Edge (the browser tests and the PDF output),
 - `make`,
 - [golangci-lint](https://golangci-lint.run/) v2 (`go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0`; the version CI uses is in `.github/workflows/ci.yml`),
-- optional: [GoReleaser](https://goreleaser.com/) v2 and [actionlint](https://github.com/rhysd/actionlint) to check the release and workflow files, and [EPUBCheck](https://www.w3.org/publishing/epubcheck/) to validate EPUB files.
+- optional: [GoReleaser](https://goreleaser.com/) v2 and [actionlint](https://github.com/rhysd/actionlint) to check the release and workflow files, [ShellCheck](https://www.shellcheck.net/) for `scripts/*.sh`, and [EPUBCheck](https://www.w3.org/publishing/epubcheck/) to validate EPUB files.
 
 ```bash
 git clone https://github.com/jtsang4/weread-exporter-go.git
@@ -22,10 +22,12 @@ make build && ./bin/weread-exporter --help
 
 ```bash
 make help          # every task
-make check         # what CI checks: gofmt, vet, golangci-lint, go test -race ./...
+make check         # what CI checks: gofmt, go mod tidy, vet, golangci-lint, notices, go test -race ./...
 make test          # go test ./...          (browser tests are skipped without Chrome)
 make test-short    # go test -short ./...   (no browser at all)
 make cover         # coverage.txt and a summary
+make notices       # regenerate THIRD_PARTY_NOTICES.md after the dependencies changed
+make completions   # shell completion scripts into completions/ (GoReleaser does this itself)
 make cross         # the six release platforms into dist/
 make snapshot      # a complete GoReleaser build without publishing
 make run ARGS="info -b 34336681"
@@ -97,6 +99,7 @@ Rules: a few chapters per session, never in a loop, never against books you do n
 
 - [ ] Tests for the change (fake site if the program talks to the site).
 - [ ] `make check` passes.
+- [ ] Dependencies changed? `make tidy notices` (CI fails when `go.mod`, `go.sum` or `THIRD_PARTY_NOTICES.md` are stale).
 - [ ] The flag tables of `README.md` and `README.en.md`, and `docs/`, agree with `weread-exporter --help`.
 - [ ] `CHANGELOG.md` has a line under `[Unreleased]`.
 - [ ] `AGENTS.md` still tells the truth.
@@ -109,7 +112,7 @@ Releases are made by GoReleaser from a tag (`.github/workflows/release.yml`).
 1. `make check` and `make snapshot` locally on `main`.
 2. Move the entries of `[Unreleased]` in `CHANGELOG.md` under a new `## [X.Y.Z] - YYYY-MM-DD` heading, commit (`docs: changelog for vX.Y.Z`).
 3. `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin main vX.Y.Z`.
-4. The workflow runs the short tests, builds Linux, macOS and Windows binaries for amd64 and arm64, packs them (`tar.gz`, `zip` for Windows), builds `.deb` and `.rpm` packages, writes `checksums.txt`, creates the GitHub release with notes generated from the commits, and attests the build provenance.
+4. The workflow runs the short tests, builds Linux, macOS and Windows binaries for amd64 and arm64, packs them (`tar.gz`, `zip` for Windows, with the license, third-party notices, READMEs and shell completions), builds `.deb` and `.rpm` packages, writes `checksums.txt`, creates the GitHub release with notes generated from the commits, and attests the build provenance. It uses the newest Go release, so the binaries contain the latest standard library fixes.
 5. Check the release page; download one archive, run `weread-exporter version`.
 
 Tags with a suffix (`v1.2.0-rc.1`) become pre-releases. Binaries get their version from the tag through linker flags (`internal/version`); `go install …@vX.Y.Z` gets it from the module version.
