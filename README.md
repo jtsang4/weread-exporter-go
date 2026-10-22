@@ -100,6 +100,7 @@ weread-exporter completion <shell>       生成 bash / zsh / fish / powershell �
 | `--chapters` | 只导出部分章节，如 `1-3,7,10-`；序号是 `info` 命令列出的序号 |
 | `--output-dir` | 输出目录，默认 `output` |
 | `--cache-dir` | 缓存目录（登录信息和抓取的章节），默认 `cache` |
+| `--cookie-file` | 保存登录 cookie 的文件，默认 `<cache-dir>/cookie.txt` |
 | `--overwrite` | 覆盖已存在的输出文件（默认保留） |
 | `--css-file` | 追加到 EPUB 和 PDF 内置样式表之后的 CSS |
 | `--load-interval` | 两章之间的间隔，默认 `30s`（见[负责任地使用](#负责任地使用)） |
@@ -108,12 +109,15 @@ weread-exporter completion <shell>       生成 bash / zsh / fish / powershell �
 | `--no-sandbox` | 不使用 Chrome 沙箱（容器里、root 下需要） |
 | `--chrome-path` | 浏览器可执行文件 |
 | `--user-data-dir` | 保留 Chrome 的配置目录 |
+| `--use-default-profile` | 使用日常的 Chrome 配置（先关闭 Chrome；Chrome 136 及更高版本不支持，见[故障排查](docs/troubleshooting.md)） |
 | `--force-login` | 忽略已保存的登录，重新登录 |
 | `--keep-reader-mode` | 不切换账号的阅读模式（账号是左右翻页时会直接失败） |
 | `--mobi-converter` | EPUB 转 MOBI 的程序 |
 | `--proxy-server` | 浏览器和 HTTP 请求使用的代理 |
+| `--mock-user-agent` | 使用常见的桌面 Chrome User-Agent，而不是真实的 |
 | `--log-format` | 日志格式：`text` 或 `json`（日志写到标准错误） |
 | `-v, --verbose` | 输出调试日志 |
+| `--debug-browser` | 把网页的控制台输出转发到日志 |
 | `-y, --yes` | 对提问一律回答 yes（例如浏览器看起来是自动化的时候继续） |
 
 `--load-interval` 和 `--load-timeout` 可以写秒数（`30`）或时间长度（`500ms`、`2m`）。

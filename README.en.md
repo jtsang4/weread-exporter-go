@@ -100,6 +100,7 @@ The common flags of the export command (`weread-exporter --help` lists all of th
 | `--chapters` | export only some chapters, e.g. `1-3,7,10-`; the numbers are the ones `info` lists |
 | `--output-dir` | where the files go, default `output` |
 | `--cache-dir` | login and captured chapters, default `cache` |
+| `--cookie-file` | the file that stores the login cookies, default `<cache-dir>/cookie.txt` |
 | `--overwrite` | replace output files that exist (they are kept by default) |
 | `--css-file` | CSS appended to the built-in style sheet of EPUB and PDF |
 | `--load-interval` | pause between two chapters, default `30s` (see [Responsible use](#responsible-use)) |
@@ -108,12 +109,15 @@ The common flags of the export command (`weread-exporter --help` lists all of th
 | `--no-sandbox` | start Chrome without its sandbox (containers, running as root) |
 | `--chrome-path` | the browser executable |
 | `--user-data-dir` | keep Chrome's profile in this directory |
+| `--use-default-profile` | use your everyday Chrome profile (close Chrome first; not possible with Chrome 136 and later, see [Troubleshooting](docs/troubleshooting.md)) |
 | `--force-login` | ignore the saved login and sign in again |
 | `--keep-reader-mode` | never switch the account's reader mode (fails if the account uses the paged reader) |
 | `--mobi-converter` | program that converts EPUB to MOBI |
 | `--proxy-server` | proxy for the browser and the HTTP requests |
+| `--mock-user-agent` | present a regular desktop Chrome user agent instead of the real one |
 | `--log-format` | `text` or `json`; the log goes to the standard error |
 | `-v, --verbose` | log debugging details |
+| `--debug-browser` | forward the console output of the web pages to the log |
 | `-y, --yes` | answer questions with yes (for example to carry on with a browser that looks automated) |
 
 `--load-interval` and `--load-timeout` take seconds (`30`) or a duration (`500ms`, `2m`).
