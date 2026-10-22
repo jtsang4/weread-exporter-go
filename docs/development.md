@@ -82,7 +82,7 @@ Rules: a few chapters per session, never in a loop, never against books you do n
 ## Debugging
 
 - `-v` shows debug logs; `--debug-browser` forwards the page's console; `--log-format json` is for machines.
-- Failed captures write `cache/diagnostics/<time>-<url>.html` and `.png`.
+- Failed captures write `cache/diagnostics/<date>-<time>-<page>.html` and `.png`.
 - To watch the browser, run without `--headless`. To keep Chrome's profile, add `--user-data-dir /tmp/profile`.
 - `-race` finds most concurrency bugs quickly: `go test -race ./internal/browser ./internal/app`.
 

@@ -45,6 +45,7 @@ This needs Go 1.26 or later.
 git clone https://github.com/jtsang4/weread-exporter-go.git
 cd weread-exporter-go
 make build        # writes bin/weread-exporter
+# without make: go build -o weread-exporter ./cmd/weread-exporter
 ```
 
 ### Requirements
@@ -206,7 +207,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md): Chrome not found, login 
 ## Contributing
 
 ```bash
-make check        # gofmt, go vet, golangci-lint, go test -race
+make check        # gofmt, go mod tidy, go vet, golangci-lint, license notices, go test -race
 make cross        # cross-compile for the six platforms into dist/
 make help         # every task
 ```

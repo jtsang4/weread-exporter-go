@@ -41,6 +41,7 @@ Tools: golangci-lint v2 (version pinned in `.github/workflows/ci.yml`), optional
 | `internal/fakesite` | a fake WeRead (httptest server) for the tests |
 | `internal/version` | build information set through linker flags |
 | `testdata` | golden files produced by the Python original, and their generators |
+| `docs` | architecture, development and troubleshooting guides |
 | `scripts` | `notices.sh` (writes `THIRD_PARTY_NOTICES.md`), `completions.sh` (used by GoReleaser) |
 | `.github`, `.goreleaser.yaml` | CI, release and CodeQL workflows, dependabot, issue forms, the release pipeline |
 
@@ -87,7 +88,7 @@ Tag `vX.Y.Z` on `main` and push the tag: `.github/workflows/release.yml` runs Go
 ## Gotchas
 
 - `--chapters` and the `info` table use **1-based positions**, not WeRead's chapter UIDs (the numbers in the cache file names after the dash).
-- The reader's footer button decides what happens next: `下一页` next page, `下一章` chapter complete, `登录…` login wanted, anything else means the chapter is not readable (paywall). The last chapter of a book has no button; the capture waits `FooterTimeout` (60 s) and takes that as the end.
+- The reader's footer button decides what happens next: `下一页` next page, `下一章` chapter complete, `登录…` login wanted, anything else means the chapter is not readable (paywall: a locked chapter shows a button such as `会员卡 19元/月 · 开通后即可阅读`, next to `下一章`). The last chapter of a book has no button; the capture waits `FooterTimeout` (60 s) and takes that as the end.
 - `wr_skey` (the session cookie) lives about an hour; the tool renews it every ~20 minutes. Renewal is `POST /web/login/renewal`; the reader mode is `POST /web/user_config/modify`.
 - The theme cookie `wr_theme=dark` is set in the *browser* for the hook's colour thresholds and must never be saved to the account or the cookie file.
 - Headless Chrome cannot show the login QR code: `login` needs a window, exports can be headless afterwards.

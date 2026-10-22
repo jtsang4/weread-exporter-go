@@ -55,7 +55,8 @@ The export needs the *scrolling* reader (上下滚动阅读); the paged one (左
 ## A chapter cannot be read / 读不了的章节
 
 ```text
-chapter 9 "第1章 起步" cannot be read: browser: the chapter cannot be read (reader footer button "…"); it is probably not free and not owned by this account
+chapter 12 "第4章 操作列表" cannot be read: browser: the chapter cannot be read (reader footer button "会员卡 19元/月 · 开通后即可阅读"); it is probably not free and not owned by this account
+(use --chapters to export only the chapters that are free or that you own; `weread-exporter info -b 34336681` lists them)
 ```
 
 The web reader does not show the text of this chapter to your account: it is not free, and you neither bought the book nor have a reading membership that covers it. The tool does not (and cannot) get around that. Use `info` to see the table of contents and export what you can read:

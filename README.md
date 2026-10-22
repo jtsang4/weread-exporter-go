@@ -45,6 +45,7 @@ go install github.com/jtsang4/weread-exporter-go/cmd/weread-exporter@latest
 git clone https://github.com/jtsang4/weread-exporter-go.git
 cd weread-exporter-go
 make build        # 生成 bin/weread-exporter
+# 没有 make 时：go build -o weread-exporter ./cmd/weread-exporter
 ```
 
 ### 运行环境
@@ -206,7 +207,7 @@ cache/
 ## 参与开发
 
 ```bash
-make check        # gofmt、go vet、golangci-lint、go test -race
+make check        # gofmt、go mod tidy、go vet、golangci-lint、许可证清单、go test -race
 make cross        # 为全部 6 个平台交叉编译到 dist/
 make help         # 全部任务
 ```
