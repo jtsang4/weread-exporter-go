@@ -138,6 +138,8 @@ func TestRunLocalisesImagesOnce(t *testing.T) {
 	mustContain(t, "md", md, "A%20Test%20Book.assets/")
 	mustContain(t, "md", md, "https://res.weread.qq.com/img/gone.missing") // stays remote, with a warning
 	mustContain(t, "log", h.logs(), "image not localised")
+	mustContain(t, "log", h.logs(), "images of this chapter could not be downloaded") // names the chapter
+	mustContain(t, "log", h.logs(), "move the chapter's .md.bak file back over its .md file")
 	assets, err := os.ReadDir(filepath.Join(h.cfg.OutputDir, "A Test Book.assets"))
 	if err != nil || len(assets) != 1 {
 		t.Fatalf("assets = %v, %v; the same image used by three chapters is stored once", assets, err)
@@ -148,6 +150,49 @@ func TestRunLocalisesImagesOnce(t *testing.T) {
 	h.mustRun(h.exporter())
 	if again := len(h.site.Fetched()); again != fetched {
 		t.Fatalf("the second run fetched %d more images; processed chapters must not hit the network", again-fetched)
+	}
+}
+
+// The troubleshooting guide tells users to move a chapter's ".md.bak" back over
+// its ".md" to try its images again. That has to work without the browser, and
+// only for that chapter.
+func TestRunTriesTheImagesOfAChapterAgainWhenItsRawCaptureIsPutBack(t *testing.T) {
+	h := newHarness(t)
+	h.prefill()
+	st := h.store()
+	meta, err := st.LoadMeta()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for pos, ch := range meta.Chapters {
+		if err := st.SaveChapter(pos, ch.ID, "## Chapter\n\nA broken picture ![](https://res.weread.qq.com/img/gone.missing) in the text.\n"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	h.cfg.Formats = []string{"md"}
+	h.mustRun(h.exporter())
+	for pos, ch := range meta.Chapters {
+		if !st.IsProcessed(pos, ch.ID) {
+			t.Fatalf("chapter %d was not processed by the first run", pos+1)
+		}
+	}
+	fetched := len(h.site.Fetched())
+
+	path := st.ChapterPath(0, meta.Chapters[0].ID)
+	if err := os.Rename(path+".bak", path); err != nil {
+		t.Fatal(err)
+	}
+	h.cfg.Overwrite = true
+	h.mustRun(h.exporter())
+
+	if again := len(h.site.Fetched()) - fetched; again != 1 {
+		t.Fatalf("the second run fetched %d images, want the one of the chapter that was put back", again)
+	}
+	if !st.IsProcessed(0, meta.Chapters[0].ID) {
+		t.Fatal("the chapter that was put back is not processed again")
+	}
+	if h.br.launchCount() != 0 {
+		t.Fatal("the browser started to process chapters that are captured already")
 	}
 }
 

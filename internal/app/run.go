@@ -347,12 +347,17 @@ func (e *Exporter) postProcess(ctx context.Context, store *book.Store, meta *boo
 		downloaded += stats.Downloaded
 		reused += stats.Reused
 		failed += stats.Failed
+		if stats.Failed > 0 {
+			e.log.Warn("images of this chapter could not be downloaded and stay linked to the web",
+				"chapter", pos+1, "title", ch.Title, "failed", stats.Failed, "file", store.ChapterPath(pos, ch.ID))
+		}
 	}
 	if downloaded+reused+failed > 0 {
 		e.log.Info("images", "downloaded", downloaded, "cached", reused, "failed", failed)
 	}
 	if failed > 0 {
-		e.log.Warn("some images could not be downloaded and stay linked to the web; the e-book shows them only online")
+		e.log.Warn("some images could not be downloaded: Markdown and PDF show them only online, an EPUB links to them; " +
+			"to try again, move the chapter's .md.bak file back over its .md file and export again (docs/troubleshooting.md)")
 	}
 	return nil
 }

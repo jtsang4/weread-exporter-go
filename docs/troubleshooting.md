@@ -94,6 +94,7 @@ weread-exporter -b 34336681 --headless --no-sandbox --cache-dir ~/weread/cache
 ## Slow, blocked or restricted / 太慢、被限制
 
 - **It is slow on purpose.** Every chapter is read page by page, and 30 seconds pass between two chapters (`--load-interval`). A book of 40 chapters takes about 20 minutes plus the time to read the pages. Do not lower the interval: WeRead may restrict accounts that read too fast.
+- **A minute of silence at the end of a book.** The last chapter of a book has no "next chapter" button, so the exporter waits up to a minute for it before it takes that as the end. Nothing is wrong.
 - **Interrupt and continue.** Ctrl-C stops cleanly (the reader mode is restored); run the same command again and it carries on with the chapters that are not cached.
 - **`capturing the chapter failed` warnings** are retried (3 attempts per chapter, and the browser is restarted if it keeps failing). If a chapter fails every time, raise `--load-timeout 120`, check the screenshot in `cache/diagnostics/`, and try again later.
 - **The page asks for verification, or the account is restricted.** Stop, open weread.qq.com in your normal browser, and see what it says. Wait before you try again, and do not run exports in a loop.
@@ -102,6 +103,7 @@ weread-exporter -b 34336681 --headless --no-sandbox --cache-dir ~/weread/cache
 
 - **MOBI: `cannot produce MOBI`.** MOBI is converted from the EPUB by Calibre's `ebook-convert` or by `kindlegen`; install [Calibre](https://calibre-ebook.com/) (`brew install --cask calibre`, `apt install calibre`, ...) or point `--mobi-converter` at the program. The check happens before anything is captured. Most Kindles read EPUB directly nowadays (send it with Amazon's "Send to Kindle").
 - **PDF takes long or fails.** The PDF is printed by a separate headless Chrome, which needs time and memory for long books (a few minutes for a thousand pages). `--chrome-path` and `--no-sandbox` apply to it as well. Try EPUB if you only need to read on a device.
+- **`[图片]` instead of a picture in the EPUB.** A picture that could not be downloaded (the log says `image not localised` and names the chapter) becomes a link to its address in the EPUB, because an EPUB may not embed pictures from the web. Markdown keeps the web address, a PDF loads the picture while you are online, and a TXT has no pictures at all. To try the download again without capturing the chapter again, go to `cache/<book id>/chapters/`, move `<n>-<id>.md.bak` over `<n>-<id>.md` (`<n>` is the chapter number in the warning), and export again with `--overwrite` while you are online.
 - **An output file is not updated.** Existing outputs are kept; add `--overwrite`.
 - **The EPUB does not look right in my reader.** Add your own CSS with `--css-file my.css` (it is appended to the built-in style sheet), and tell us which reader it was.
 - **The file names.** Characters that file systems do not allow are percent-encoded as the Python tool did (an ASCII `:` in a title becomes `%3a`; the full-width `：` is kept), and very long titles are cut. A partial export has the chapters in its name (`<title> (chapters 1-5).epub`).
