@@ -26,6 +26,7 @@ make check         # what CI checks: gofmt, go mod tidy, vet, golangci-lint, not
 make test          # go test ./...          (browser tests are skipped without Chrome)
 make test-short    # go test -short ./...   (no browser at all)
 make cover         # coverage.txt and a summary
+make vulncheck     # govulncheck ./...      (known vulnerabilities, see below)
 make notices       # regenerate THIRD_PARTY_NOTICES.md after the dependencies changed
 make completions   # shell completion scripts into completions/ (GoReleaser does this itself)
 make cross         # the six release platforms into dist/
@@ -34,6 +35,8 @@ make run ARGS="info -b 34336681"
 ```
 
 Run one test: `go test ./internal/app -run TestRunWithCustomCSS -v -count=1`.
+
+`make vulncheck` needs [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck), built by a Go release at least as new as the one you build with (`go install golang.org/x/vuln/cmd/govulncheck@latest`). A finding in the *standard library* only means that your Go patch release is old: CI scans with the newest release and the release binaries are built with it, so update your toolchain and run it again.
 
 ## Tests
 

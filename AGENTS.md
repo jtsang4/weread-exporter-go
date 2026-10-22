@@ -17,6 +17,7 @@ make test-short             # no browser needed, seconds
 make test                   # all tests; browser tests need Chrome/Chromium/Edge
 make cross                  # the six release platforms into dist/
 make tidy notices           # after changing dependencies: go.mod/go.sum and THIRD_PARTY_NOTICES.md
+make vulncheck              # govulncheck; a finding in the standard library means an old local Go patch release (CI uses the newest)
 make snapshot               # complete GoReleaser build without publishing
 make run ARGS="info -b 34336681"
 go test ./internal/app -run TestRunWithCustomCSS -v -count=1      # one test

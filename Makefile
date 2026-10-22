@@ -20,6 +20,7 @@ PLATFORMS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 win
 
 GOLANGCI_LINT ?= golangci-lint
 GORELEASER    ?= goreleaser
+GOVULNCHECK   ?= govulncheck
 
 .DEFAULT_GOAL := help
 
@@ -74,6 +75,10 @@ vet: ## Run go vet
 .PHONY: lint
 lint: ## Run golangci-lint
 	$(GOLANGCI_LINT) run ./...
+
+.PHONY: vulncheck
+vulncheck: ## Scan for known vulnerabilities (needs govulncheck; use the newest Go patch release)
+	$(GOVULNCHECK) ./...
 
 .PHONY: tidy
 tidy: ## Tidy go.mod and go.sum
