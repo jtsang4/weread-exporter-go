@@ -163,7 +163,7 @@ accounts that read too fast, and the exported books are for your own use.`,
   weread-exporter -b 34336681
 
   # several formats at once, from a book URL
-  weread-exporter -b https://weread.qq.com/web/bookDetail/3300040626 -o epub -o pdf -o md
+  weread-exporter -b https://weread.qq.com/web/bookDetail/08232ac0720befa90825d88 -o epub -o pdf -o md
 
   # look at the table of contents, then export only some of the chapters
   weread-exporter info -b 34336681

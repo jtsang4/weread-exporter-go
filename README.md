@@ -71,7 +71,7 @@ weread-exporter -b 34336681 -o epub -o pdf -o md -o txt
 
 `-b` / `--book-id` 接受下面任何一种写法：
 
-- 书籍详情页网址：`https://weread.qq.com/web/bookDetail/3300040626`（在 <https://weread.qq.com/> 搜索书名进入详情页，复制地址栏即可）
+- 书籍详情页网址：`https://weread.qq.com/web/bookDetail/08232ac0720befa90825d88`（在 <https://weread.qq.com/> 搜索书名进入详情页，复制地址栏即可）
 - 详情页网址里的那串 ID（如 `08232ac0720befa90825d88`）
 - 阅读页网址：`https://weread.qq.com/web/reader/...`
 - 数字 ID（如 `34336681`，工具会换算成网址里的 ID）

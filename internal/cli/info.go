@@ -27,7 +27,7 @@ login is needed.
 
 The chapter numbers are the ones --chapters takes.`,
 		Example: `  weread-exporter info -b 34336681
-  weread-exporter info -b https://weread.qq.com/web/bookDetail/3300040626 --json`,
+  weread-exporter info -b https://weread.qq.com/web/bookDetail/08232ac0720befa90825d88 --json`,
 		Args:          noArgs,
 		SilenceUsage:  true,
 		SilenceErrors: true,

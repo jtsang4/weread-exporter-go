@@ -71,7 +71,7 @@ weread-exporter -b 34336681 -o epub -o pdf -o md -o txt
 
 `-b` / `--book-id` takes any of these:
 
-- the URL of the book's detail page: `https://weread.qq.com/web/bookDetail/3300040626` (search for the book on <https://weread.qq.com/>, open it, copy the address)
+- the URL of the book's detail page: `https://weread.qq.com/web/bookDetail/08232ac0720befa90825d88` (search for the book on <https://weread.qq.com/>, open it, copy the address)
 - the id at the end of that URL (for example `08232ac0720befa90825d88`)
 - the URL of a reader page: `https://weread.qq.com/web/reader/...`
 - a numeric id (for example `34336681`; it is converted to the id used in URLs)
