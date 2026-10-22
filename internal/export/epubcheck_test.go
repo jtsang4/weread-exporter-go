@@ -35,13 +35,18 @@ const richMarkdown = "# 标题 & <符号>\n\n" +
 // TestEPUBPassesEPUBCheck validates the generated packages with the W3C's
 // EPUBCheck (https://www.w3.org/publishing/epubcheck/) when it is installed.
 // Warnings count as failures. The test is skipped without the checker and with
-// -short, because the checker is a Java program that takes seconds to start.
+// -short, because the checker is a Java program that takes seconds to start;
+// CI sets WEREAD_TEST_REQUIRE_EPUBCHECK, which turns the missing checker into a
+// failure so that the test cannot be skipped by accident.
 func TestEPUBPassesEPUBCheck(t *testing.T) {
 	if testing.Short() {
 		t.Skip("EPUBCheck is skipped with -short")
 	}
 	checker, err := exec.LookPath("epubcheck")
 	if err != nil {
+		if os.Getenv("WEREAD_TEST_REQUIRE_EPUBCHECK") != "" {
+			t.Fatalf("EPUBCheck is required (WEREAD_TEST_REQUIRE_EPUBCHECK is set): %v", err)
+		}
 		t.Skip("epubcheck is not installed")
 	}
 

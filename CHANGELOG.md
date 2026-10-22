@@ -22,7 +22,7 @@ First release of the Go rewrite of [drunkdream/weread-exporter](https://github.c
 - Bounded retries per chapter and per browser, a login or reader mode problem in the middle of a book is repaired and the export goes on.
 - Atomic writes of every output file; existing outputs are kept unless `--overwrite` is given.
 - `--headless`, `--no-sandbox`, `--user-data-dir`, `--proxy-server`, `--css-file`, `--mobi-converter`, `--log-format json` and more; see `--help`.
-- Releases for Linux, macOS and Windows on amd64 and arm64 (archives, checksums, `.deb` and `.rpm` packages) built by GoReleaser in GitHub Actions; CI with lint, tests on three operating systems, cross-compilation, CodeQL, govulncheck and weekly fuzzing of the parsers.
+- Releases for Linux, macOS and Windows on amd64 and arm64 (archives, checksums, `.deb` and `.rpm` packages) built by GoReleaser in GitHub Actions; CI with lint (ShellCheck and actionlint included), tests on three operating systems, EPUBCheck validation of the generated EPUBs, cross-compilation, CodeQL, govulncheck and weekly fuzzing of the parsers.
 - Shell completions (bash, zsh, fish, PowerShell) and the third-party license notices in every archive; the packages install them.
 - Documentation in Chinese and English, notes for contributors and for AI coding agents.
 

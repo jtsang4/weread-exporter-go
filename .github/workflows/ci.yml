@@ -45,6 +45,16 @@ jobs:
       - name: Third-party notices are up to date
         run: make notices-check
 
+      - name: ShellCheck
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          shellcheck scripts/*.sh
+
+      # Uses ShellCheck as well, for the scripts of the workflow steps.
+      - name: actionlint
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
@@ -111,6 +121,45 @@ jobs:
 
       - name: Test without a browser
         run: go test -short -count=1 ./...
+
+  # The W3C's validator is the judge of what a valid EPUB is: every message of it,
+  # warnings included, fails the test. It needs Java, which the runners have.
+  epubcheck:
+    name: EPUBCheck
+    runs-on: ubuntu-latest
+    env:
+      EPUBCHECK_VERSION: "5.4.0"
+      # sha256 of epubcheck-5.4.0.zip (the digest GitHub shows for the release asset)
+      EPUBCHECK_SHA256: "33350c61038e71dfb3d45a76aed04bf5481e6d5500cb780f6e98db8bbd15a28c"
+      # A missing validator fails the test instead of skipping it.
+      WEREAD_TEST_REQUIRE_EPUBCHECK: "1"
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          check-latest: true
+
+      - name: Install EPUBCheck
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/epubcheck.zip" \
+            "https://github.com/w3c/epubcheck/releases/download/v${EPUBCHECK_VERSION}/epubcheck-${EPUBCHECK_VERSION}.zip"
+          echo "${EPUBCHECK_SHA256}  ${RUNNER_TEMP}/epubcheck.zip" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/epubcheck.zip" -d "$RUNNER_TEMP"
+          mkdir "$RUNNER_TEMP/bin"
+          cat > "$RUNNER_TEMP/bin/epubcheck" <<EOF
+          #!/bin/sh
+          exec java -jar "$RUNNER_TEMP/epubcheck-${EPUBCHECK_VERSION}/epubcheck.jar" "\$@"
+          EOF
+          chmod +x "$RUNNER_TEMP/bin/epubcheck"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: EPUBCheck version
+        run: epubcheck --version
+
+      - name: Validate the generated EPUBs
+        run: go test ./internal/export -run '^TestEPUBPassesEPUBCheck$' -count=1 -v
 
   build:
     name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
@@ -184,7 +233,7 @@ jobs:
   ci-ok:
     name: CI passed
     if: always()
-    needs: [lint, test, test-min-go, build, release-check, vulncheck]
+    needs: [lint, test, test-min-go, epubcheck, build, release-check, vulncheck]
     runs-on: ubuntu-latest
     steps:
       - name: Check the results of the jobs

@@ -23,7 +23,7 @@ make run ARGS="info -b 34336681"
 go test ./internal/app -run TestRunWithCustomCSS -v -count=1      # one test
 ```
 
-Tools: golangci-lint v2 (version pinned in `.github/workflows/ci.yml`), optional GoReleaser v2, actionlint, ShellCheck, EPUBCheck (run it before changing `internal/export/epub.go`).
+Tools: golangci-lint v2 (version pinned in `.github/workflows/ci.yml`), optional GoReleaser v2, actionlint, ShellCheck, EPUBCheck (run it before changing `internal/export/epub.go`); CI runs actionlint, ShellCheck and EPUBCheck as well (the versions of actionlint and EPUBCheck are pinned in `ci.yml`: bump them there).
 
 ## Repository map
 
@@ -75,9 +75,9 @@ Tools: golangci-lint v2 (version pinned in `.github/workflows/ci.yml`), optional
 | unit and golden-file tests (every package) | nothing |
 | `internal/app` tests (stub browser, fake site) | nothing |
 | `internal/browser` tests, `internal/cli/e2e_test.go` (real headless Chrome against `internal/fakesite`) | Chrome; skipped with `-short` or without Chrome |
-| `internal/export/epubcheck_test.go` (W3C EPUBCheck on generated EPUBs, warnings fail) | `epubcheck` on the `PATH`; skipped otherwise and with `-short`; CI does not run it |
+| `internal/export/epubcheck_test.go` (W3C EPUBCheck on generated EPUBs, warnings fail) | `epubcheck` on the `PATH`; skipped otherwise and with `-short`; a CI job installs it |
 
-`WEREAD_TEST_REQUIRE_CHROME=1` makes a missing Chrome a failure instead of a skip (CI sets it). Leftover test browsers have `chromedp-runner` in their command line (`pkill -f chromedp-runner`); never kill all Chrome processes: the maintainer may be using one.
+`WEREAD_TEST_REQUIRE_CHROME=1` and `WEREAD_TEST_REQUIRE_EPUBCHECK=1` make a missing Chrome or EPUBCheck a failure instead of a skip (CI sets both). Leftover test browsers have `chromedp-runner` in their command line (`pkill -f chromedp-runner`); never kill all Chrome processes: the maintainer may be using one.
 
 When the site, a flag, or the capture changes: extend `internal/fakesite`, write the test against it, then (only if needed) do a tiny live check as described in [docs/development.md](docs/development.md).
 
@@ -87,7 +87,7 @@ Regenerate golden files only on purpose: `python3 testdata/generators/wr_hash.py
 
 ## Release
 
-Tag `vX.Y.Z` on `main` and push the tag: `.github/workflows/release.yml` runs GoReleaser (`.goreleaser.yaml`): archives, `.deb`/`.rpm`, `checksums.txt`, GitHub release notes, provenance attestation. Move the `[Unreleased]` entries of `CHANGELOG.md` under the new version first. Check locally with `make snapshot`. CI is `.github/workflows/ci.yml` (lint on the minimum Go of `go.mod`, tests on Linux/macOS/Windows and builds with the newest Go, a test job on the minimum Go, GoReleaser check, govulncheck), `codeql.yml` and `fuzz.yml` (weekly); golangci-lint cannot read the standard library of a Go release newer than its own build, so the lint job stays on the minimum. Do not push tags or branches unless the maintainer asked for it.
+Tag `vX.Y.Z` on `main` and push the tag: `.github/workflows/release.yml` runs GoReleaser (`.goreleaser.yaml`): archives, `.deb`/`.rpm`, `checksums.txt`, GitHub release notes, provenance attestation. Move the `[Unreleased]` entries of `CHANGELOG.md` under the new version first. Check locally with `make snapshot`. CI is `.github/workflows/ci.yml` (lint, ShellCheck and actionlint on the minimum Go of `go.mod`, tests on Linux/macOS/Windows and builds with the newest Go, a test job on the minimum Go, the EPUBCheck job, GoReleaser check, govulncheck), `codeql.yml` and `fuzz.yml` (weekly); golangci-lint cannot read the standard library of a Go release newer than its own build, so the lint job stays on the minimum. Do not push tags or branches unless the maintainer asked for it.
 
 ## Gotchas
 
