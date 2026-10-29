@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Security
+
+- Update `golang.org/x/net` to v0.62.0 to fix quadratic-time HTML parsing ([GO-2026-6860](https://pkg.go.dev/vuln/GO-2026-6860)).
+
 ## [0.3.1] - 2026-10-22
 
 ### Changed
