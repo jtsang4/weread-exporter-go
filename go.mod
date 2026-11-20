@@ -3,8 +3,8 @@ module github.com/jtsang4/weread-exporter-go
 go 1.26.0
 
 require (
-	github.com/chromedp/cdproto v0.159.2
-	github.com/chromedp/chromedp v0.23.0
+	github.com/chromedp/cdproto v0.160.3
+	github.com/chromedp/chromedp v0.23.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.1.0
 	github.com/yuin/goldmark v1.8.7
